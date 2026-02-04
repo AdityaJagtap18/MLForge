@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Model Analysis</title>
+
+    <!-- Your global styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-left">
+            MLForge
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="use-model.html">Use Model</a>
+            <a href="find-model.html">Find Model</a>
+            <a href="about.html">About</a>
+            <a href="logs.html">Logs</a>
+            <button id="themeToggle" class="button" style="padding:8px 12px; margin-left:20px;">
+                🌙
+            </button>
+
+        </div>
+    </div>
+</nav>
+
+
+<!-- MAIN CONTENT -->
+<div class="container">
+
+    <!-- SUMMARY CARD -->
+    <div class="card">
+        <h2>Model Performance Analysis</h2>
+
+        <p id="taskBadge" class="task-badge"></p>
+
+        <p style="margin-top:10px;">
+            <b>Best Model:</b>
+            <span id="bestModel"></span>
+        </p>
+
+        <p style="margin-top:10px; color:#6b7280;">
+            This page provides a visual comparison of model performance
+            to help understand why a particular model was selected.
+        </p>
+    </div>
+
+    <!-- SCATTER PLOT CARD -->
+    <div class="card">
+        <h3>Model Comparison (Scatter Plot)</h3>
+
+        <p style="color:#6b7280; margin-bottom:15px;">
+            Each point represents a trained model.
+            The highlighted point indicates the best-performing model.
+        </p>
+
+        <canvas id="scatterChart" height="120"></canvas>
+    </div>
+
+    <!-- METRICS TABLE CARD -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Detailed Model Metrics</h3>
+            <button id="toggleTableBtn" class="button small">
+                ⬇ Show Table
+            </button>
+        </div>
+
+        <div id="metricsTableWrapper" class="table-wrapper hidden">
+            <table id="metricsTable">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <!-- BACK BUTTON -->
+    <div style="margin-top:24px;">
+        <a href="/frontend/find-model.html" class="button">
+            ← Back to Find Models
+        </a>
+    </div>
+
+</div>
+
+<div class="footer-note">
+       <p>
+    ModelForge — An ML Experimentation Platform<br>
+    Developed by <strong>Aditya Jagtap</strong>
+        </p>
+</div>
+
+
+<!-- ANALYSIS LOGIC -->
+<script src="/frontend/regression-analysis.js"></script>
+
+
+
+</body>
+</html>

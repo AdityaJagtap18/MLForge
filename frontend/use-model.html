@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Use ML Model</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+
+
+<body>
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-left">
+            MLForge
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="use-model.html">Use Model</a>
+            <a href="find-model.html">Find Model</a>
+            <a href="about.html">About</a>
+            <a href="logs.html">Logs</a>
+            <button id="themeToggle" class="button" style="padding:8px 12px; margin-left:20px;">
+                🌙
+            </button>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+
+
+    <div class="card">
+        <h2>Train ML Model</h2>
+
+        <form id="trainForm">
+
+            <label>Upload CSV</label>
+
+            <div id="fileUploadBox" class="upload-box">
+                <p id="uploadText">📂 Click to upload CSV file</p>
+                <input type="file" id="csvFile" accept=".csv" hidden required>
+            </div>
+
+
+            <label>Model Name</label>
+            <select id="modelName"></select>
+
+            <label>Input Columns (comma separated)</label>
+            <input type="text" id="inputCols" placeholder="Milestone,Health Issue" required>
+
+            <label>Target Column</label>
+            <input type="text" id="targetCol" placeholder="Attendance" required>
+
+            <label>Model Parameters (JSON)</label>
+            <input type="text" id="modelParams" value="{}">
+
+            <button type="submit" class="button" style="width:100%; margin-top:24px;">
+                🚀 Train Model
+            </button>
+
+        </form>
+    </div>
+
+    <div id="result" class="card" style="display:none;"></div>
+
+    <div id="summaryMetrics" class="card" style="display:none;"></div>
+
+    <div id="qualityBadge" class="card" style="display:none;"></div>
+
+    <div class="card" id="detailsSection" style="display:none;">
+        <h3>Detailed Metrics</h3>
+        <table id="metricsTable"></table>
+    </div>
+
+
+    <canvas id="metricsChart" style="margin-top:30px; display:none;"></canvas>
+
+    <div style="margin-top:20px;">
+    <a href="index.html" class="button">← Back</a>
+    </div>
+
+<div class="footer-note">
+       <p>
+    ModelForge — An ML Experimentation Platform<br>
+    Developed by <strong>Aditya Jagtap</strong>
+        </p>
+</div>
+
+</div>
+
+<script src="app.js"></script>
+<script>
+    const toggleBtn = document.getElementById("themeToggle");
+    const body = document.body;
+
+    // Load saved theme
+    if (localStorage.getItem("theme") === "dark") {
+        body.classList.add("dark");
+        toggleBtn.textContent = "☀️ Light";
+    }
+
+    toggleBtn.addEventListener("click", () => {
+        body.classList.toggle("dark");
+
+        if (body.classList.contains("dark")) {
+            localStorage.setItem("theme", "dark");
+            toggleBtn.textContent = "☀️ Light";
+        } else {
+            localStorage.setItem("theme", "light");
+            toggleBtn.textContent = "🌙 Dark";
+        }
+    });
+</script>
+
+</body>
+
+</html>

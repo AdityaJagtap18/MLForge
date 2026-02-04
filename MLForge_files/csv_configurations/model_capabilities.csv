@@ -1,0 +1,60 @@
+MODEL_NAME,IS_CLASSIFICATION,IS_REGRESSION
+Linear Regression,0,1
+Ridge Regression,0,1
+Ridge CV,0,1
+Count Vectorizer,0,0
+Logistic Regression,1,0
+Lasso,0,1
+Lasso CV,0,1
+SGD Regressor,0,1
+Logistic Regression CV,1,0
+K-Nearest Neighbours Regression,0,1
+K-Nearest Neighbours Classification,1,0
+Passive Aggressive Classifier,1,0
+Ridge Classifier,1,0
+Ridge Classifier CV,1,0
+SGD Classifier,1,0
+Gaussian Naive Bayes Classifier,1,0
+Multinomial Naive Bayes Classifier,1,0
+Support Vector Machine,1,0
+Decision Tree Regressor,0,1
+Decision Tree Classifier,1,0
+Linear Support Vector Regression,0,1
+Linear Support Vector Classification,1,0
+Tf idf Transformer,0,0
+Tf idf Vectorizer,0,0
+Perceptron,1,0
+Elastic Net,1,1
+Elastic Net CV,1,1
+Least Angle Regression,0,1
+Cross validated Least Angle Regression,0,1
+Lasso model fit with least angle regression,0,1
+Cross validated lasso using LARS,0,1
+Orthogonal Matching Pursuit,0,1
+Cross validated Orthogonal Matching Pursuit,0,1
+Bayesian ARD Regression,0,1
+Bayesian Ridge Regression,0,1
+Huber Regressors,0,1
+Theil-Sen Regressor,0,1
+Poisson Regressor,0,1
+Tweedie Regressor,0,1
+Gamma Regressor,0,1
+Bernoulli Naive Bayes,1,0
+Categorical Naive Bayes,1,0
+Complement Naive Bayes,1,0
+Radius Neighbors Classifier,1,0
+Radius Neighbors Regressor,0,1
+Nearest Centroid Classifier,1,0
+Multi-layer Perceptron Classifier,1,0
+Multi-layer Perceptron Regressor,0,1
+Nu-Support Vector Classification,1,0
+Nu-Support Vector Regression,0,1
+Epsilon-Support Vector Regression,0,1
+Extra Tree Classifier,1,0
+Extra Tree Regressor,0,1
+Lasso model fit with LARS using AIC OR BIC for model selection,0,1
+Multi Task Elastic Net,0,1
+Multi Task Elastic Net with cross-validation,0,1
+Multi-task Lasso,0,1
+Multi-task Lasso with cross validation,0,1
+

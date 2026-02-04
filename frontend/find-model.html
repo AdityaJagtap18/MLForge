@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Find Best Model</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-left">
+            MLForge
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="use-model.html">Use Model</a>
+            <a href="find-model.html">Find Model</a>
+            <a href="about.html">About</a>
+            <a href="logs.html">Logs</a>
+            <button id="themeToggle" class="button" style="padding:8px 12px; margin-left:20px;">
+                🌙
+            </button>
+
+        </div>
+    </div>
+</nav>
+
+
+<div class="container">
+    <div class="card">
+        <h2>Find Best ML Model</h2>
+        <p>Upload your dataset and automatically compare models.</p>
+
+        <form id="findForm">
+
+            <!-- FILE -->
+            <div id="fileUploadBox" class="upload-box">
+                <p id="uploadText">📂 Click to upload CSV file</p>
+                <input type="file" id="csvFile" accept=".csv" hidden required>
+            </div>
+            <!-- TASK TYPE -->
+            <label>Task Type</label>
+            <div class="radio-group">
+                <label class="radio-card">
+                    <input type="radio" name="taskType" value="classification" checked>
+                    <span class="radio-custom"></span>
+                    <span class="radio-label">Classification</span>
+                </label>
+
+                <label class="radio-card">
+                    <input type="radio" name="taskType" value="regression">
+                    <span class="radio-custom"></span>
+                    <span class="radio-label">Regression</span>
+                </label>
+            </div>
+            <!-- INPUT COLS -->
+            <label>Input Columns (comma separated)</label>
+            <input type="text"
+                   id="inputCols"
+                   name="input_cols"
+                   placeholder="Milestone,Health Issue"
+                   required>
+
+            <!-- TARGET -->
+            <label>Target Column</label>
+            <input type="text"
+                   id="targetCol"
+                   name="target_col"
+                   placeholder="Attendance"
+                   required>
+
+            <button type="submit" class="button" style="width:100%; margin-top:24px;">
+                🔍 Find Best Model
+            </button>
+
+        </form>
+        
+
+    </div>
+    
+<div id="loader" class="loader-card" style="display:none;">
+        <div class="spinner"></div>
+        <p>Analyzing dataset & benchmarking models...</p>
+</div>
+
+<div style="margin-top:20px;">
+    <a href="index.html" class="button">← Back</a>
+</div>
+</div>
+
+<div class="footer-note">
+       <p>
+    ModelForge — An ML Experimentation Platform<br>
+    Developed by <strong>Aditya Jagtap</strong>
+        </p>
+</div>
+
+
+<!-- IMPORTANT: JS AT BOTTOM -->
+<script src="/frontend/find-model.js"></script>
+<script>
+    const toggleBtn = document.getElementById("themeToggle");
+    const body = document.body;
+
+    // Load saved theme
+    if (localStorage.getItem("theme") === "dark") {
+        body.classList.add("dark");
+        toggleBtn.textContent = "☀️ Light";
+    }
+
+    toggleBtn.addEventListener("click", () => {
+        body.classList.toggle("dark");
+
+        if (body.classList.contains("dark")) {
+            localStorage.setItem("theme", "dark");
+            toggleBtn.textContent = "☀️ Light";
+        } else {
+            localStorage.setItem("theme", "light");
+            toggleBtn.textContent = "🌙 Dark";
+        }
+    });
+</script>
+</body>
+</html>

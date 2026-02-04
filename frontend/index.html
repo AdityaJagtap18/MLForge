@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ML Model Building Platform</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-left">
+            MLForge
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="use-model.html">Use Model</a>
+            <a href="find-model.html">Find Model</a>
+            <a href="about.html">About</a>
+            <a href="logs.html">Logs</a>
+            <button id="themeToggle" class="button" style="padding:8px 12px; margin-left:20px;">
+                🌙
+            </button>
+
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+
+
+    <!-- HERO SECTION -->
+    <div class="card hero">
+        <h2>ML Model Building Platform</h2>
+        <p>
+            Train, evaluate, and export machine learning models<br>
+            using preprocessed data — fast and effortlessly.
+        </p>
+    </div>
+
+
+    <!-- WHAT IT DOES -->
+    <div class="card">
+        <h3>What does this platform do?</h3>
+        <p>
+            This platform allows users to upload structured, preprocessed datasets
+            and quickly build machine learning models.
+            It automates model training, evaluation, and serialization,
+            enabling users to focus on <b>model selection and performance</b>
+            rather than implementation details.
+        </p>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="card">
+        <h3>How it works</h3>
+        <ol>
+            <li>Upload a preprocessed CSV dataset</li>
+            <li>Select input and target columns</li>
+            <li>Choose a machine learning model (or compare multiple models)</li>
+            <li>Train the model and evaluate performance</li>
+            <li>Download the trained model as a <b>.pkl</b> file</li>
+        </ol>
+    </div>
+
+    <!-- WHO IS IT FOR -->
+    <div class="card">
+        <h3>Who is this for?</h3>
+        <ul>
+            <li>Students learning machine learning</li>
+            <li>Developers who want quick ML experimentation</li>
+            <li>Teams integrating ML models into applications</li>
+            <li>Anyone who already has preprocessed data</li>
+        </ul>
+    </div>
+
+    <!-- ACTION CARDS -->
+    <div class="grid">
+
+        <div class="card" onclick="window.location.href='use-model.html'" style="cursor:pointer;">
+            <h3>⚙️ Use a Specific ML Model</h3>
+            <p>
+                Train a selected ML model, evaluate its performance,
+                and download a reusable <b>.pkl</b> file.
+            </p>
+            <a class="button">Get Started</a>
+        </div>
+
+        <div class="card" onclick="window.location.href='find-model.html'" style="cursor:pointer; opacity:0.9;">
+            <h3>🔍 Find Best ML Model</h3>
+            <p>
+                Automatically compare multiple ML models and
+                identify the best-performing one for your dataset.
+            </p>
+            <a class="button">Get Started</a>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer-note">
+       <p>
+    ModelForge — An ML Experimentation Platform<br>
+    Developed by <strong>Aditya Jagtap</strong>
+        </p>
+    </div>
+
+</div>
+<script>
+    const toggleBtn = document.getElementById("themeToggle");
+    const body = document.body;
+
+    // Load saved theme
+    if (localStorage.getItem("theme") === "dark") {
+        body.classList.add("dark");
+        toggleBtn.textContent = "☀️ Light";
+    }
+
+    toggleBtn.addEventListener("click", () => {
+        body.classList.toggle("dark");
+
+        if (body.classList.contains("dark")) {
+            localStorage.setItem("theme", "dark");
+            toggleBtn.textContent = "☀️ Light";
+        } else {
+            localStorage.setItem("theme", "light");
+            toggleBtn.textContent = "🌙 Dark";
+        }
+    });
+</script>
+
+</body>
+</html>
