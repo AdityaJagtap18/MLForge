@@ -1,0 +1,40 @@
+services:
+  backend:
+    image: ghcr.io/adityajagtap18/mlforge-backend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      MLFORGE_ENV: ${MLFORGE_ENV:-production}
+      MLFORGE_API_KEY: ${MLFORGE_API_KEY:?set MLFORGE_API_KEY in .env.prod}
+      MLFORGE_CORS_ORIGINS: ${MLFORGE_CORS_ORIGINS:-https://mlforge.adityajagtap.com}
+      MLFORGE_FILES_DIR: /data
+      MLFORGE_DATABASE_URL: sqlite:////data/mlforge.db
+    ports:
+      - "127.0.0.1:${HOST_PORT_API:-8050}:8000"
+    volumes:
+      - mlforge_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8000/api/v1/health\")' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    image: ghcr.io/adityajagtap18/mlforge-frontend:latest
+    build:
+      context: ./frontend-react
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://mlforge-api.adityajagtap.com
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${HOST_PORT_WEB:-8051}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mlforge_data:

@@ -18,6 +18,19 @@ MLFORGE_FILES_DIR = os.environ.get(
 )
 MODEL_CATALOG_CSV = os.path.join(MLFORGE_FILES_DIR, "csv_configurations", "baml_model_tbl.csv")
 MODEL_CAPABILITIES_CSV = os.path.join(MLFORGE_FILES_DIR, "csv_configurations", "model_capabilities.csv")
+_BUNDLED_CONFIG_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "MLForge_files", "csv_configurations"
+)
+
+
+def _resolve_csv_path(path: str, filename: str) -> str:
+    if os.path.exists(path):
+        return path
+    bundled = os.path.join(_BUNDLED_CONFIG_DIR, filename)
+    if os.path.exists(bundled):
+        return bundled
+    return path
+
 
 _CLASS_REGISTRY: dict[str, type] = {}
 for _module in (linear_model, neighbors, naive_bayes, tree, svm, neural_network):
@@ -33,19 +46,21 @@ class UnknownModelError(ValueError):
 
 @lru_cache(maxsize=1)
 def _load_catalog_df() -> pd.DataFrame:
-    if not os.path.exists(MODEL_CATALOG_CSV):
+    path = _resolve_csv_path(MODEL_CATALOG_CSV, "baml_model_tbl.csv")
+    if not os.path.exists(path):
         raise FileNotFoundError(
-            f"Model catalog not found at {MODEL_CATALOG_CSV!r}. Expected columns: "
+            f"Model catalog not found at {path!r}. Expected columns: "
             "MODEL_NAME, MODEL_CLASS."
         )
-    return pd.read_csv(MODEL_CATALOG_CSV)
+    return pd.read_csv(path)
 
 
 @lru_cache(maxsize=1)
 def _load_capabilities_df() -> pd.DataFrame:
-    if not os.path.exists(MODEL_CAPABILITIES_CSV):
-        raise FileNotFoundError(f"Model capabilities file not found at {MODEL_CAPABILITIES_CSV!r}.")
-    return pd.read_csv(MODEL_CAPABILITIES_CSV)
+    path = _resolve_csv_path(MODEL_CAPABILITIES_CSV, "model_capabilities.csv")
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Model capabilities file not found at {path!r}.")
+    return pd.read_csv(path)
 
 
 def clear_cache() -> None:

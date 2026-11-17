@@ -40,12 +40,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="MLForge API", version="0.4.0", lifespan=lifespan)
 
-_allowed_origins = [o for o in os.environ.get("MLFORGE_CORS_ORIGINS", "").split(",") if o]
+_allowed_origins = [o.strip() for o in os.environ.get("MLFORGE_CORS_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins or ["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 app.add_middleware(prometheus_metrics.PrometheusMiddleware)
