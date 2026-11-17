@@ -2,7 +2,21 @@
 
 All notable changes to this project are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased] — Phase 1 (in progress)
+## [Unreleased] — Phase 2 (in progress)
+
+### Added
+- `api/auth.py`, `api/routers/auth.py`: user accounts (`POST /auth/register`, `/auth/login`), PBKDF2-SHA256 password hashing (stdlib only), opaque bearer tokens. `Job.owner_id` + `services.owns()` scope every job/version read to its owner; a legacy `MLFORGE_API_KEY` still works as a service-account bypass (`SystemPrincipal`).
+- `api/integrations/mlflow_adapter.py`: experiment tracking wired into `run_train_job`/`run_find_best_job` (params, metrics, git commit, dataset fingerprint; AutoML candidates logged as nested runs under one parent). No-ops cleanly if `mlflow` isn't installed/reachable.
+- `ml_core/dataset_profile.py`, `POST /api/v1/datasets/profile`: row/column counts, missingness, duplicates, constant columns, target distribution/class-imbalance ratio, heuristic leakage warnings (high correlation with target, excess duplicates).
+- `api/registry_service.py`, `api/routers/registry.py`, `ModelVersion` table: register a completed job as a versioned model, promote through development/staging/production/archived with a configurable quality gate (`MLFORGE_PROMOTION_MIN_SCORE`), and roll back to the previously-promoted version.
+- `ml_core/explainability.py`, `GET /api/v1/jobs/{id}/explain`: SHAP global feature importance, explicitly worded as "contribution, not causation"; degrades to a clean `supported: false` response instead of a 500 when `shap` is missing or the estimator isn't supported.
+- `alembic/versions/0002_phase2_auth_registry.py`.
+
+### Not done this pass (see docs/implementation-status.md)
+- PostgreSQL migration, Redis+RQ async execution, retention/cleanup job, rate limiting.
+- No frontend UI yet for accounts/registry/dataset-profiling/explainability -- backend-only.
+
+## [Unreleased] — Phase 1
 
 ### Added
 - `ml_core/` package: model catalog, task-type detection, preprocessing pipeline, in-process training, metrics, prediction.

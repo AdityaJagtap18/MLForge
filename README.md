@@ -2,7 +2,7 @@
 
 A self-service tabular ML platform: CSV upload → preprocessing → training/AutoML search → prediction → (Phase 2+) experiment tracking, model registry, deployment and monitoring. See [`PRODUCT_REQUIREMENTS_DOCUMENT.md`](PRODUCT_REQUIREMENTS_DOCUMENT.md) for the full product spec and [`docs/implementation-plan.md`](docs/implementation-plan.md) for the phased build-out this repo is following.
 
-> **Status:** Phase 1 in progress. Core training/search/predict/logs flows work end to end against the refactored API; MLflow/Evidently/SHAP/registry/deployment (Phases 2–3) are not implemented yet — see [`docs/implementation-status.md`](docs/implementation-status.md).
+> **Status:** Phase 2 in progress. Phase 1's training/search/predict/logs flows plus Phase 2's user accounts, MLflow tracking, dataset profiling, model registry and SHAP explainability are written; Postgres/Redis+RQ/retention are not started and Evidently/deployment (Phase 3) aren't either — see [`docs/implementation-status.md`](docs/implementation-status.md). **Nothing in this repo has been executed by the assistant session that wrote it** (no Python/Node available) — run the test suite yourself before trusting it.
 
 ## Project structure
 
@@ -33,6 +33,9 @@ Environment variables (see `.env.example`):
 - `MLFORGE_CORS_ORIGINS` — comma-separated allowed origins; defaults to the Vite dev server.
 - `MLFORGE_DATABASE_URL` — defaults to a local SQLite file under `MLForge_files/`.
 - `MLFORGE_FILES_DIR` — defaults to `./MLForge_files`.
+- `MLFORGE_MLFLOW_ENABLED` — set to `false` to disable MLflow tracking entirely; defaults on but degrades to a no-op if `mlflow` isn't installed/reachable.
+- `MLFLOW_TRACKING_URI` — defaults to a local file store under `MLForge_files/mlruns`.
+- `MLFORGE_PROMOTION_MIN_SCORE` — minimum f1/r2 required to promote a model version to `production`; defaults to `0.0` (no gate — not the recommended production setting).
 
 Run the API:
 

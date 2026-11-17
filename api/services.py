@@ -6,6 +6,7 @@ one near-empty file per name.
 """
 from __future__ import annotations
 
+import hashlib
 import os
 import pickle
 import uuid
@@ -17,6 +18,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from api.db_models import Job
+from api.integrations import mlflow_adapter
 from ml_core import catalog
 from ml_core.prediction import predict as run_prediction
 from ml_core.training import TrainingValidationError, train_one_model
@@ -41,13 +43,20 @@ def _pickle_dir() -> str:
     return os.path.join(_files_dir(), "pickle_files")
 
 
+def upload_path(dataset_filename: str) -> str:
+    return os.path.join(_upload_dir(), dataset_filename)
+
+
 class UploadValidationError(ValueError):
     pass
 
 
-def read_uploaded_csv(file: UploadFile) -> tuple[pd.DataFrame, str]:
+def read_uploaded_csv(file: UploadFile) -> tuple[pd.DataFrame, str, str]:
     """Validates and reads an uploaded CSV. Never trusts the client-supplied
-    filename for path construction (NFR-SEC: untrusted-upload handling)."""
+    filename for path construction (NFR-SEC: untrusted-upload handling).
+    Returns (dataframe, stored-filename, sha256 dataset fingerprint) -- the
+    fingerprint is the dataset-lineage identifier referenced from Job and
+    from MLflow run tags (docs/adr/0002)."""
     _, ext = os.path.splitext(file.filename or "")
     if ext.lower() not in ALLOWED_EXTENSIONS:
         raise UploadValidationError(f"Unsupported file type {ext!r}; only .csv is accepted.")
@@ -64,6 +73,8 @@ def read_uploaded_csv(file: UploadFile) -> tuple[pd.DataFrame, str]:
     if df.empty:
         raise UploadValidationError("Uploaded CSV has no rows.")
 
+    fingerprint = hashlib.sha256(raw).hexdigest()
+
     safe_name = f"{uuid.uuid4()}.csv"
     upload_dir = _upload_dir()
     dest_path = os.path.join(upload_dir, safe_name)
@@ -71,7 +82,16 @@ def read_uploaded_csv(file: UploadFile) -> tuple[pd.DataFrame, str]:
     with open(dest_path, "wb") as f:
         f.write(raw)
 
-    return df, safe_name
+    return df, safe_name, fingerprint
+
+
+def owns(job: Job, current_user) -> bool:
+    """SystemPrincipal (legacy API-key auth) bypasses ownership scoping, same
+    as Phase 1 behavior; otherwise a job with no owner (created before user
+    accounts existed) is nobody's, and any other user's job is off-limits."""
+    if current_user.id == "system":
+        return True
+    return job.owner_id == current_user.id
 
 
 def create_job(db: Session, **fields) -> Job:
@@ -109,31 +129,39 @@ def load_pipeline(pickle_path: str):
 
 
 def run_train_job(db: Session, job: Job, df: pd.DataFrame, model_params: dict) -> Job:
-    try:
-        result = train_one_model(
-            df=df,
-            input_cols=job.input_cols,
-            target_col=job.target_col,
-            model_name=job.model_name,
-            model_params=model_params,
-            task_type=job.task_type,
-        )
-    except (TrainingValidationError, catalog.UnknownModelError) as exc:
-        return finish_job(db, job, status="failed", error_message=str(exc))
-    except Exception:
-        # BUG-05 fix: never return raw tracebacks/stderr to API callers.
-        return finish_job(db, job, status="failed", error_message="Training failed due to an internal error.")
+    with mlflow_adapter.tracked_run(f"train-{job.id}") as run:
+        run.set_tags({**mlflow_adapter.run_context_tags(), "job_id": job.id, "dataset_fingerprint": job.dataset_fingerprint})
+        run.log_params({"model_name": job.model_name, **model_params})
 
-    pickle_path = save_pipeline(job.id, result.pipeline)
-    metrics_with_split_sizes = {**result.metrics, "n_train": result.n_train, "n_test": result.n_test}
-    return finish_job(
-        db,
-        job,
-        status="succeeded",
-        task_type=result.task_type,
-        metrics=metrics_with_split_sizes,
-        pickle_path=pickle_path,
-    )
+        try:
+            result = train_one_model(
+                df=df,
+                input_cols=job.input_cols,
+                target_col=job.target_col,
+                model_name=job.model_name,
+                model_params=model_params,
+                task_type=job.task_type,
+            )
+        except (TrainingValidationError, catalog.UnknownModelError) as exc:
+            return finish_job(db, job, status="failed", error_message=str(exc), mlflow_run_id=run.run_id)
+        except Exception:
+            # BUG-05 fix: never return raw tracebacks/stderr to API callers.
+            return finish_job(
+                db, job, status="failed", error_message="Training failed due to an internal error.", mlflow_run_id=run.run_id
+            )
+
+        run.log_metrics(result.metrics)
+        pickle_path = save_pipeline(job.id, result.pipeline)
+        metrics_with_split_sizes = {**result.metrics, "n_train": result.n_train, "n_test": result.n_test}
+        return finish_job(
+            db,
+            job,
+            status="succeeded",
+            task_type=result.task_type,
+            metrics=metrics_with_split_sizes,
+            pickle_path=pickle_path,
+            mlflow_run_id=run.run_id,
+        )
 
 
 def run_find_best_job(db: Session, job: Job, df: pd.DataFrame, task_type: str) -> Job:
@@ -144,38 +172,52 @@ def run_find_best_job(db: Session, job: Job, df: pd.DataFrame, task_type: str) -
     best_metrics: dict | None = None
     best_score = None
 
-    for model_name in allowed_models:
-        try:
-            result = train_one_model(
-                df=df,
-                input_cols=job.input_cols,
-                target_col=job.target_col,
-                model_name=model_name,
-                model_params={},
-                task_type=task_type,
+    with mlflow_adapter.tracked_run(f"find-best-{job.id}") as parent_run:
+        parent_run.set_tags(
+            {**mlflow_adapter.run_context_tags(), "job_id": job.id, "dataset_fingerprint": job.dataset_fingerprint, "search": "true"}
+        )
+
+        for model_name in allowed_models:
+            with mlflow_adapter.tracked_run(f"candidate-{model_name}", parent_run_id=parent_run.run_id) as candidate_run:
+                candidate_run.log_params({"model_name": model_name})
+                try:
+                    result = train_one_model(
+                        df=df,
+                        input_cols=job.input_cols,
+                        target_col=job.target_col,
+                        model_name=model_name,
+                        model_params={},
+                        task_type=task_type,
+                    )
+                except Exception:
+                    candidate_run.set_tags({"status": "failed"})
+                    continue
+
+                candidate_run.log_metrics(result.metrics)
+                score = result.metrics.get("f1") if task_type == "classification" else result.metrics.get("r2")
+                results.append({"model": model_name, **result.metrics})
+                if score is not None and (best_score is None or score > best_score):
+                    best_score, best_name, best_pipeline, best_metrics = score, model_name, result.pipeline, result.metrics
+
+        if not results or best_name is None:
+            return finish_job(
+                db, job, status="failed", error_message="No candidate model trained successfully.", mlflow_run_id=parent_run.run_id
             )
-        except Exception:
-            continue
 
-        score = result.metrics.get("f1") if task_type == "classification" else result.metrics.get("r2")
-        results.append({"model": model_name, **result.metrics})
-        if score is not None and (best_score is None or score > best_score):
-            best_score, best_name, best_pipeline, best_metrics = score, model_name, result.pipeline, result.metrics
-
-    if not results or best_name is None:
-        return finish_job(db, job, status="failed", error_message="No candidate model trained successfully.")
-
-    pickle_path = save_pipeline(job.id, best_pipeline)
-    return finish_job(
-        db,
-        job,
-        status="succeeded",
-        task_type=task_type,
-        model_name=best_name,
-        metrics=best_metrics,
-        results=results,
-        pickle_path=pickle_path,
-    )
+        parent_run.log_metrics(best_metrics or {})
+        parent_run.set_tags({"best_model": best_name})
+        pickle_path = save_pipeline(job.id, best_pipeline)
+        return finish_job(
+            db,
+            job,
+            status="succeeded",
+            task_type=task_type,
+            model_name=best_name,
+            metrics=best_metrics,
+            results=results,
+            pickle_path=pickle_path,
+            mlflow_run_id=parent_run.run_id,
+        )
 
 
 def run_predict_job(db: Session, source_job: Job, predict_job: Job, df: pd.DataFrame) -> tuple[Job, list]:

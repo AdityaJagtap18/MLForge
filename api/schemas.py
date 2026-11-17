@@ -65,3 +65,58 @@ class HealthResponse(BaseModel):
     status: str
     database: str
     model_catalog: str
+
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user_id: str
+    email: str
+
+
+class DatasetProfileResponse(BaseModel):
+    n_rows: int
+    n_columns: int
+    columns: list[dict]
+    duplicate_rows: int
+    constant_columns: list[str]
+    target_column: str | None = None
+    target_distribution: dict | None = None
+    class_imbalance_ratio: float | None = None
+    leakage_warnings: list[str]
+
+
+class ModelVersionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    job_id: str
+    model_name: str
+    version: int
+    lifecycle_state: str
+    model_card: dict | None = None
+    promoted_from: str | None = None
+    created_at: datetime
+    promoted_at: datetime | None = None
+
+
+class PromoteRequest(BaseModel):
+    target_state: str  # staging | production | archived
+
+
+class ExplainResponse(BaseModel):
+    job_id: str
+    supported: bool
+    message: str | None = None
+    feature_names: list[str] | None = None
+    global_importance: dict | None = None

@@ -31,6 +31,20 @@ Status values: `Not started` · `Partially implemented` · `Implemented` · `Tes
 | MLOPS-DEPLOY-01 (serving/rollback) | Transformation prompt | n/a | none | Not started | 3 |
 | MLOPS-RETRAIN-01 (controlled retraining) | Transformation prompt | n/a | none | Not started | 4 (optional) |
 
+## Phase 2 (in progress, same "written not executed" caveat as above)
+
+| Requirement ID | Implementation location | Status |
+|---|---|---|
+| FR-AUTH-02/03 (user accounts, ownership scoping) | `api/auth.py`, `api/routers/auth.py`, `Job.owner_id`, `services.owns()` | Partially implemented -- no frontend login UI yet; backend-only |
+| MLOPS-EXP-01 (MLflow tracking) | `api/integrations/mlflow_adapter.py`, wired into `services.run_train_job`/`run_find_best_job` | Partially implemented -- degrades to a no-op if `mlflow` isn't actually installed (not verifiable here); AutoML candidates logged as nested runs under a parent |
+| Dataset quality/validation | `ml_core/dataset_profile.py`, `POST /api/v1/datasets/profile` | Partially implemented -- profiling + heuristic leakage/imbalance warnings only, no UI page yet (Datasets nav item is still ComingSoon in the frontend) |
+| MLOPS-REG-01 (model registry) | `api/registry_service.py`, `api/routers/registry.py`, `ModelVersion` | Partially implemented -- register/list/promote/rollback + a configurable quality gate (`MLFORGE_PROMOTION_MIN_SCORE`); no frontend page yet |
+| MLOPS-XAI-01 (SHAP explainability) | `ml_core/explainability.py`, `GET /api/v1/jobs/{id}/explain` | Partially implemented -- global feature importance only, no local/per-prediction explanations yet; degrades to a clean "unsupported" response if `shap` isn't installed or the estimator isn't supported |
+| PostgreSQL migration | n/a | **Not started** -- still SQLite; `DATABASE_URL` is already abstracted (`api/db.py`) so this is a connection-string + testing exercise, not a rewrite, when picked up |
+| Redis + RQ async execution | n/a | **Not started** -- training/search are still synchronous within the request; this is the main Phase 2 item not attempted this pass |
+| Retention/cleanup job | n/a | **Not started** |
+| Rate limiting | n/a | **Not started** |
+
 ## Known gaps / deferred within Phase 1
 - `src/model.py`/`train.py`/`test.py`/`metrics.py` are superseded by `ml_core/` but not deleted yet (kept pending the user's own verification, per the transformation prompt's "don't delete legacy code until tested" rule).
 - Legacy static `frontend/` is kept until the React app's parity checklist (`docs/ui/visual-spec.md` §9) is actually run in a browser.

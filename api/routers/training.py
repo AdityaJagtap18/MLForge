@@ -6,17 +6,18 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from api import services
+from api.auth import require_auth_if_configured
 from api.db import get_db
-from api.deps import require_api_key
 from api.schemas import FindBestModelResponse, TrainModelResponse
 from ml_core.task_detection import detect_task_type
 
-router = APIRouter(tags=["training"], dependencies=[Depends(require_api_key)])
+router = APIRouter(tags=["training"])
 
 
 @router.post("/train-model", response_model=TrainModelResponse)
 def train_model(
     db: Session = Depends(get_db),
+    current_user=Depends(require_auth_if_configured),
     file: UploadFile = File(...),
     model_name: str = Form(...),
     input_cols: str = Form(...),
@@ -24,7 +25,7 @@ def train_model(
     model_params: str = Form("{}"),
 ):
     try:
-        df, dataset_filename = services.read_uploaded_csv(file)
+        df, dataset_filename, fingerprint = services.read_uploaded_csv(file)
     except services.UploadValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -39,7 +40,9 @@ def train_model(
         db,
         job_type="train",
         status="running",
+        owner_id=current_user.id,
         dataset_filename=dataset_filename,
+        dataset_fingerprint=fingerprint,
         model_name=model_name,
         input_cols=input_cols_list,
         target_col=target_col,
@@ -63,13 +66,14 @@ def train_model(
 @router.post("/find-best-model", response_model=FindBestModelResponse)
 def find_best_model(
     db: Session = Depends(get_db),
+    current_user=Depends(require_auth_if_configured),
     file: UploadFile = File(...),
     input_cols: str = Form(...),
     target_col: str = Form(...),
     task_type: str | None = Form(None),
 ):
     try:
-        df, dataset_filename = services.read_uploaded_csv(file)
+        df, dataset_filename, fingerprint = services.read_uploaded_csv(file)
     except services.UploadValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -85,7 +89,9 @@ def find_best_model(
         db,
         job_type="find_best",
         status="running",
+        owner_id=current_user.id,
         dataset_filename=dataset_filename,
+        dataset_fingerprint=fingerprint,
         input_cols=input_cols_list,
         target_col=target_col,
         task_type=resolved_task_type,
