@@ -94,8 +94,16 @@ def _resolve_bearer_token(db: Session, authorization: str | None) -> User:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
     if access_token.revoked_at is not None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
-    if access_token.expires_at is not None and access_token.expires_at < datetime.now(timezone.utc):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
+    expires_at = access_token.expires_at
+    if expires_at is not None:
+        # SQLite drops tzinfo on round-trip even for a DateTime(timezone=True)
+        # column, so a value read back here can be naive even though it was
+        # written as UTC-aware -- normalize before comparing, or this raises
+        # TypeError on every authenticated request against SQLite.
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
 
     user = db.get(User, access_token.user_id)
     if user is None:
