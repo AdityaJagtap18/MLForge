@@ -1,11 +1,16 @@
 import { Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/layout/AppShell";
-import { ComingSoon } from "./pages/ComingSoon";
+import { Datasets } from "./pages/Datasets";
+import { Deployments } from "./pages/Deployments";
+import { Explainability } from "./pages/Explainability";
 import { FindBestModel } from "./pages/FindBestModel";
 import { Logs } from "./pages/Logs";
+import { ModelRegistry } from "./pages/ModelRegistry";
+import { Monitoring } from "./pages/Monitoring";
 import { Overview } from "./pages/Overview";
 import { Predictions } from "./pages/Predictions";
 import { Retraining } from "./pages/Retraining";
+import { Settings } from "./pages/Settings";
 import { TrainModel } from "./pages/TrainModel";
 
 export default function App() {
@@ -17,13 +22,13 @@ export default function App() {
         <Route path="/experiments" element={<FindBestModel />} />
         <Route path="/predictions" element={<Predictions />} />
         <Route path="/logs" element={<Logs />} />
-        <Route path="/datasets" element={<ComingSoon title="Datasets" phase="Phase 1 (profiling/validation UI)" />} />
-        <Route path="/registry" element={<ComingSoon title="Model Registry" phase="Phase 2" />} />
-        <Route path="/deployments" element={<ComingSoon title="Deployments" phase="Phase 3" />} />
-        <Route path="/monitoring" element={<ComingSoon title="Monitoring" phase="Phase 3" />} />
-        <Route path="/explainability" element={<ComingSoon title="Explainability" phase="Phase 2" />} />
+        <Route path="/datasets" element={<Datasets />} />
+        <Route path="/registry" element={<ModelRegistry />} />
+        <Route path="/deployments" element={<Deployments />} />
+        <Route path="/monitoring" element={<Monitoring />} />
+        <Route path="/explainability" element={<Explainability />} />
         <Route path="/pipelines" element={<Retraining />} />
-        <Route path="/settings" element={<ComingSoon title="Settings" phase="Phase 2 (accounts)" />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </AppShell>
   );

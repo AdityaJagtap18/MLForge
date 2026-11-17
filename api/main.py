@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.db import init_db
 from api.deps import API_KEY, ENVIRONMENT, IS_PRODUCTION
 from api.integrations import prometheus_metrics
-from api.routers import auth, catalog_router, datasets, deployments, explain, health, jobs, predict, registry, retraining, training
+from api.routers import auth, catalog_router, datasets, deployments, explain, health, jobs, overview, predict, registry, retraining, settings, training
 
 logger = logging.getLogger("mlforge")
 
@@ -63,6 +63,8 @@ app.include_router(registry.router, prefix="/api/v1")
 app.include_router(explain.router, prefix="/api/v1")
 app.include_router(deployments.router, prefix="/api/v1")
 app.include_router(retraining.router, prefix="/api/v1")
+app.include_router(overview.router, prefix="/api/v1")
+app.include_router(settings.router, prefix="/api/v1")
 
 
 @app.get("/metrics")

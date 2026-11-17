@@ -219,3 +219,129 @@ class RetrainingDecisionRequest(MLForgeBaseModel):
 
 class GenerateCandidateRequest(MLForgeBaseModel):
     model_version_id: str  # the registered version whose config to retrain with
+
+
+class ModelsOverview(MLForgeBaseModel):
+    total_registered: int
+    by_stage: dict[str, int]
+    production_champion: str | None = None
+
+
+class ExperimentsOverview(MLForgeBaseModel):
+    total: int
+    active: int
+    succeeded: int
+    failed: int
+    unique_datasets: int
+
+
+class DeploymentsOverview(MLForgeBaseModel):
+    total: int
+    active: int
+    stopped: int
+    replaced: int
+
+
+class DriftAlertItem(MLForgeBaseModel):
+    snapshot_id: str
+    deployment_id: str
+    model_name: str
+    drift_share: float | None = None
+    drift_detected: bool | None = None
+    created_at: datetime
+    is_active: bool
+    status: str
+    resolution_reason: str | None = None
+
+
+class DriftAlertsOverview(MLForgeBaseModel):
+    total: int
+    active: int
+    resolved: int
+    recent_alerts: list[DriftAlertItem] = []
+
+
+class DailyActivityPoint(MLForgeBaseModel):
+    date: str
+    count: int
+
+
+class ModelPerformancePoint(MLForgeBaseModel):
+    model_name: str
+    version: int | None = None
+    stage: str | None = None
+    metric_name: str
+    metric_value: float
+
+
+class SystemHealthOverview(MLForgeBaseModel):
+    api: str
+    database: str
+    model_catalog: str
+    mlflow: str
+    monitoring: str
+
+
+class OverviewStatsResponse(MLForgeBaseModel):
+    models: ModelsOverview
+    experiments: ExperimentsOverview
+    deployments: DeploymentsOverview
+    drift_alerts: DriftAlertsOverview
+    training_activity: list[DailyActivityPoint]
+    model_performance: list[ModelPerformancePoint]
+    system_health: SystemHealthOverview
+    recent_jobs: list[JobSummary]
+
+
+# Phase 5B.7: Settings & Environment Status schemas
+class AppConfigInfo(MLForgeBaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+    app_name: str
+    app_version: str
+    environment: str
+    is_production: bool
+    api_version: str
+    backend_base_url: str
+    frontend_url: str
+    deployment_mode: str
+    startup_time: str
+    docs_url: str = "/docs"
+
+
+class CapabilityItem(MLForgeBaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+    name: str
+    key: str
+    category: str
+    status: str  # "available" | "enabled" | "unavailable" | "degraded" | "disabled"
+    description: str
+    dependency: str | None = None
+
+
+class UserProfileInfo(MLForgeBaseModel):
+    user_id: str
+    email: str | None
+    role: str
+    auth_status: str
+    session_created_at: datetime | None = None
+    session_expires_at: datetime | None = None
+    is_service_account: bool = False
+
+
+class DependencyHealthDetail(MLForgeBaseModel):
+    name: str
+    key: str
+    status: str  # "healthy" | "degraded" | "unavailable" | "not_configured" | "unknown"
+    latency_ms: float | None = None
+    last_checked: datetime
+    message: str
+    version: str | None = None
+
+
+class SettingsResponse(MLForgeBaseModel):
+    config: AppConfigInfo
+    capabilities: list[CapabilityItem]
+    health: list[DependencyHealthDetail]
+    profile: UserProfileInfo
+
+

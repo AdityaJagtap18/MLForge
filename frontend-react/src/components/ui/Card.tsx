@@ -1,8 +1,21 @@
 import type { ReactNode } from "react";
 
-export function Card({ className = "", children }: { className?: string; children: ReactNode }) {
+export function Card({
+  className = "",
+  children,
+  onClick,
+}: {
+  className?: string;
+  children: ReactNode;
+  onClick?: () => void;
+}) {
   return (
-    <div className={`rounded-card border border-line bg-surface p-5 shadow-sm ${className}`}>{children}</div>
+    <div
+      onClick={onClick}
+      className={`rounded-card border border-line bg-surface p-5 shadow-sm ${className}`}
+    >
+      {children}
+    </div>
   );
 }
 
