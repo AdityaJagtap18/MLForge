@@ -29,7 +29,9 @@ pip install -r requirements-dev.txt
 ```
 
 Environment variables (see `.env.example`):
-- `MLFORGE_API_KEY` — required in any non-local deployment; write endpoints are unauthenticated if unset (a startup warning is logged).
+- `MLFORGE_ENV` — `development` (default) or `production`. In `production`, the local-dev auth bypass never applies, even with no users yet — every request needs a valid API key or bearer token.
+- `MLFORGE_API_KEY` — legacy service-account bypass (`SystemPrincipal`, sees all users' resources). In `development` with no users registered yet, auth is skipped entirely if this is also unset (local-dev convenience).
+- `MLFORGE_TOKEN_TTL_DAYS` — bearer token lifetime, default 30.
 - `MLFORGE_CORS_ORIGINS` — comma-separated allowed origins; defaults to the Vite dev server.
 - `MLFORGE_DATABASE_URL` — defaults to a local SQLite file under `MLForge_files/`.
 - `MLFORGE_FILES_DIR` — defaults to `./MLForge_files`.

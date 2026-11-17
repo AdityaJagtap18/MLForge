@@ -70,6 +70,34 @@ def test_dataset_profile_reports_quality_signals(client):
     assert body["target_column"] == "label"
 
 
+def _register_and_stage(client, token, job_id):
+    version_id = client.post(f"/api/v1/registry/{job_id}/register", headers={"Authorization": f"Bearer {token}"}).json()["id"]
+    staged = client.post(
+        f"/api/v1/registry/{version_id}/promote",
+        json={"target_state": "staging"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert staged.status_code == 200
+    assert staged.json()["lifecycle_state"] == "staging"
+    return version_id
+
+
+def test_registry_rejects_invalid_lifecycle_transition(client):
+    """development -> production must go through staging (docs/implementation-plan.md
+    Phase 4: only development<->staging<->production<->archived transitions are valid)."""
+    token = _register(client)
+    job_id = _train(client, token)
+    version_id = client.post(f"/api/v1/registry/{job_id}/register", headers={"Authorization": f"Bearer {token}"}).json()["id"]
+
+    resp = client.post(
+        f"/api/v1/registry/{version_id}/promote",
+        json={"target_state": "production"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 400
+    assert "Cannot transition" in resp.json()["detail"]
+
+
 def test_registry_register_and_promote_requires_quality_gate(client, monkeypatch):
     import api.registry_service as registry_service
 
@@ -77,11 +105,7 @@ def test_registry_register_and_promote_requires_quality_gate(client, monkeypatch
 
     token = _register(client)
     job_id = _train(client, token)
-
-    reg_resp = client.post(f"/api/v1/registry/{job_id}/register", headers={"Authorization": f"Bearer {token}"})
-    assert reg_resp.status_code == 200
-    version_id = reg_resp.json()["id"]
-    assert reg_resp.json()["lifecycle_state"] == "development"
+    version_id = _register_and_stage(client, token, job_id)
 
     promote_resp = client.post(
         f"/api/v1/registry/{version_id}/promote",
@@ -99,7 +123,7 @@ def test_registry_promote_succeeds_with_gate_disabled(client, monkeypatch):
 
     token = _register(client)
     job_id = _train(client, token)
-    version_id = client.post(f"/api/v1/registry/{job_id}/register", headers={"Authorization": f"Bearer {token}"}).json()["id"]
+    version_id = _register_and_stage(client, token, job_id)
 
     promote_resp = client.post(
         f"/api/v1/registry/{version_id}/promote",
@@ -108,3 +132,4 @@ def test_registry_promote_succeeds_with_gate_disabled(client, monkeypatch):
     )
     assert promote_resp.status_code == 200
     assert promote_resp.json()["lifecycle_state"] == "production"
+    assert "pickle_path" not in promote_resp.json()
