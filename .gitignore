@@ -1,0 +1,39 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Data & model artifacts — never commit new ones (see docs/architecture/current-state.md §5)
+MLForge_files/api_uploads/
+MLForge_files/pickle_files/
+MLForge_files/training_output/
+MLForge_files/bulk_upload_folder/
+MLForge_files/rawTraining/
+MLForge_files/MLForge_execution_groups/
+*.pkl
+*.db
+*.sqlite3
+
+# Frontend
+frontend-react/node_modules/
+frontend-react/dist/
+node_modules/
+dist/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Test/build output
+.pytest_cache/
+htmlcov/
+.coverage
+*.egg-info/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
