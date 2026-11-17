@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from api.db import Base
@@ -29,14 +29,22 @@ class User(Base):
 
 
 class AccessToken(Base):
-    """Opaque bearer token issued on login. Deliberately not a self-encoding
-    JWT: revocation (logout) just deletes the row, no blocklist needed."""
+    """Opaque bearer token issued on login/register. Only the SHA-256 hash of
+    the token is stored (`token_hash`) -- the raw token is returned to the
+    caller exactly once and never persisted, so a database read (backup,
+    leak, insider) cannot be used to authenticate as anyone. Deliberately
+    not a self-encoding JWT: revocation just sets `revoked_at`, no blocklist
+    needed. `expires_at` enforces a hard lifetime (default 30 days, see
+    api/auth.py) in addition to explicit revocation (logout)."""
 
     __tablename__ = "access_tokens"
 
-    token: Mapped[str] = mapped_column(String(64), primary_key=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Job(Base):
@@ -64,6 +72,7 @@ class Job(Base):
     results: Mapped[list] = mapped_column(JSON, nullable=True)  # find_best per-candidate results
     pickle_path: Mapped[str] = mapped_column(String(512), nullable=True)
     mlflow_run_id: Mapped[str] = mapped_column(String(64), nullable=True)
+    tracking_status: Mapped[str] = mapped_column(String(16), nullable=True)  # ok | unavailable | error
     error_message: Mapped[str] = mapped_column(String(2000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -79,6 +88,16 @@ class ModelVersion(Base):
     """
 
     __tablename__ = "model_versions"
+    __table_args__ = (
+        # Enforced at the DB level in addition to registry_service.py's
+        # application-level counting, so a race between two concurrent
+        # registrations can't silently produce a duplicate version number
+        # for the same owner+model_name (SQLite and PostgreSQL both treat
+        # multiple NULL owner_ids as distinct for uniqueness purposes, so
+        # this behaves the same on both -- see docs/implementation-plan.md
+        # Phase 7 notes).
+        UniqueConstraint("owner_id", "model_name", "version", name="uq_model_versions_owner_model_version"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     job_id: Mapped[str] = mapped_column(String(36), ForeignKey("jobs.id"), index=True)

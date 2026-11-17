@@ -1,6 +1,0 @@
-Weighted_Average,_Model_Name_,_precision_,recall,_f1_score_,_support_,_accuracy_score_
-negative,LogisticRegression(),0.6666666666666666,1.0,0.8,4.0,0.6666666666666666
-positive,LogisticRegression(),0.0,0.0,0.0,2.0,
-accuracy,LogisticRegression(),0.6666666666666666,0.6666666666666666,0.6666666666666666,0.6666666666666666,
-macro avg,LogisticRegression(),0.3333333333333333,0.5,0.4,6.0,
-weighted avg,LogisticRegression(),0.4444444444444444,0.6666666666666666,0.5333333333333333,6.0,

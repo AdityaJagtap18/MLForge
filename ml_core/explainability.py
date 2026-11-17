@@ -27,6 +27,9 @@ def global_feature_importance(pipeline: Pipeline, X_sample: pd.DataFrame, max_ro
     except ImportError as exc:
         raise ExplainabilityUnavailable("The shap package is not installed on this server.") from exc
 
+    if not isinstance(X_sample, pd.DataFrame) or X_sample.empty:
+        raise ExplainabilityUnavailable("No input data available to explain (empty or invalid sample).")
+
     estimator = pipeline.named_steps.get("model")
     preprocessor = pipeline.named_steps.get("preprocess")
     if estimator is None or preprocessor is None:
@@ -53,6 +56,11 @@ def global_feature_importance(pipeline: Pipeline, X_sample: pd.DataFrame, max_ro
     values = shap_values.values
     if values.ndim == 3:  # multi-class: average absolute contribution across classes
         values = values.mean(axis=2)
+    if values.ndim != 2 or values.shape[1] != len(feature_names):
+        raise ExplainabilityUnavailable(
+            f"SHAP returned an unexpected output shape {values.shape} for "
+            f"{len(feature_names)} features -- cannot map values to feature names."
+        )
 
     mean_abs = abs(values).mean(axis=0)
     importance = {name: float(score) for name, score in zip(feature_names, mean_abs)}

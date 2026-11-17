@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
-from api.auth import hash_password, issue_token, verify_password
+from api.auth import hash_password, issue_token, revoke_token, verify_password
 from api.db import get_db
 from api.db_models import User
-from api.schemas import LoginRequest, RegisterRequest, TokenResponse
+from api.schemas import LoginRequest, LogoutResponse, RegisterRequest, TokenResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -24,6 +24,15 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     db.refresh(user)
     token = issue_token(db, user)
     return TokenResponse(access_token=token, user_id=user.id, email=user.email)
+
+
+@router.post("/logout", response_model=LogoutResponse)
+def logout(db: Session = Depends(get_db), authorization: str | None = Header(default=None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=400, detail="Provide the token to revoke as a Bearer Authorization header.")
+    token = authorization.removeprefix("Bearer ").strip()
+    revoked = revoke_token(db, token)
+    return LogoutResponse(revoked=revoked)
 
 
 @router.post("/login", response_model=TokenResponse)
