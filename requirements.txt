@@ -1,7 +1,9 @@
-pandas
-numpy
-scikit-learn
-matplotlib
-fastapi 
-uvicorn 
-python-multipart
+pandas==2.2.3
+numpy==1.26.4
+scikit-learn==1.5.2
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.17
+SQLAlchemy==2.0.36
+alembic==1.14.0
+pydantic==2.9.2
