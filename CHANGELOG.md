@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased] — Phase 3: Deployment and monitoring (`feature/phase3-deployment-monitoring`)
+
+A real Python 3.12 + Node.js environment was installed this session (winget), so this pass was actually executed, not just written: **71/71 pytest passed**, Alembic `0001→0004` clean on a fresh SQLite DB (including a downgrade/re-upgrade of 0004), and `npm run build` passed.
+
+### Added
+- `Deployment`, `RequestLog`, `MonitoringSnapshot` tables (`alembic/versions/0004`). `api/deployment_service.py`: deploy a `staging`/`production` registry version to a live serving slot (one active deployment per owner+model_name; deploying replaces the previous one, same promote/rollback pattern as the registry).
+- `POST /api/v1/deployments/{version_id}/deploy`, `GET /deployments`, `GET /deployments/{id}` (status + request count/error count/latency), `POST /deployments/{id}/rollback`, `POST /deployments/{id}/stop`.
+- `POST /deployments/{id}/predict`: real-time single-record JSON inference (distinct from the existing CSV-based, job-scoped `/predict`), logging every call's latency/success/error for the deployment's metrics.
+- `api/integrations/evidently_adapter.py` + `api/monitoring_service.py`: data-drift evaluation between a deployment's original training data and a newly uploaded window, via `POST /deployments/{id}/monitor`; history via `GET /deployments/{id}/monitoring`. Same graceful-degrade contract as the MLflow adapter (`status`: `ok`/`unavailable`/`error`, never a silent false "no drift"). Alert thresholding via `MLFORGE_DRIFT_ALERT_SHARE`.
+- `GET /api/v1/registry/compare?challenger_version_id=...`: champion/challenger comparison against the current production version for that model name, read-only (never auto-promotes).
+- `api/integrations/prometheus_metrics.py`, `GET /metrics`: request count + latency histogram middleware, degrades to a no-op if `prometheus_client` isn't installed.
+- `tests/test_deployment_monitoring.py` (18 new tests).
+
+### Not done this pass
+- OpenTelemetry tracing, Grafana dashboards (need external infra this sandbox can't verify against -- see `docs/backlog.md`).
+- Batch inference enhancements beyond the existing `/predict`; PostgreSQL, Redis+RQ, retention, rate limiting (carried over); no frontend UI for any Phase 3 endpoint yet.
+
 ## [Unreleased] — Phase 2 hardening pass (`feature/phase2-hardening`)
 
 ### Security

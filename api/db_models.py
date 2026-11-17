@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from api.db import Base
@@ -110,3 +110,62 @@ class ModelVersion(Base):
     promoted_from: Mapped[str] = mapped_column(String(36), nullable=True)  # previous production version id, for rollback
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     promoted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Deployment(Base):
+    """Phase 3: binds one ModelVersion to a live serving slot.
+
+    At most one Deployment is "active" per (owner_id, model_name) at a
+    time -- deploying a new version marks the previous one "replaced" and
+    records `replaced` -> this one's id so rollback can reverse it, the
+    same pattern ModelVersion.promoted_from uses for registry rollback
+    (docs/adr/0005: FastAPI serves models directly, no separate platform).
+    """
+
+    __tablename__ = "deployments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    model_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("model_versions.id"), index=True)
+    owner_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=True, index=True)
+    model_name: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(16), default="active")  # active | replaced | stopped
+    replaced_by: Mapped[str] = mapped_column(String(36), nullable=True)  # id of the Deployment that replaced this one
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    stopped_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class RequestLog(Base):
+    """One real-time prediction call against a Deployment -- the basis for
+    request count / latency / error rate (transformation prompt "Capture
+    request count, latency, errors and model version")."""
+
+    __tablename__ = "request_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    deployment_id: Mapped[str] = mapped_column(String(36), ForeignKey("deployments.id"), index=True)
+    success: Mapped[bool] = mapped_column(Boolean)
+    latency_ms: Mapped[float] = mapped_column(Float)
+    error_message: Mapped[str] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
+
+
+class MonitoringSnapshot(Base):
+    """One drift/quality evaluation window against a Deployment.
+
+    Per the transformation prompt: data drift, prediction drift and
+    labeled-performance drift are distinct concepts and must not be
+    conflated -- `drift_type` records which one this snapshot measured.
+    """
+
+    __tablename__ = "monitoring_snapshots"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    deployment_id: Mapped[str] = mapped_column(String(36), ForeignKey("deployments.id"), index=True)
+    drift_type: Mapped[str] = mapped_column(String(32))  # data_drift | prediction_drift
+    n_rows: Mapped[int] = mapped_column(Integer)
+    drift_detected: Mapped[bool] = mapped_column(Boolean, nullable=True)  # None if the check itself couldn't run
+    drift_share: Mapped[float] = mapped_column(Float, nullable=True)  # fraction of columns/metrics flagged as drifted
+    report: Mapped[dict] = mapped_column(JSON, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="ok")  # ok | unavailable | error (same honesty contract as Job.tracking_status)
+    error_message: Mapped[str] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)

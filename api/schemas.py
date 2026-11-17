@@ -130,3 +130,58 @@ class ExplainResponse(BaseModel):
     message: str | None = None
     feature_names: list[str] | None = None
     global_importance: dict | None = None
+
+
+class DeploymentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    model_version_id: str
+    model_name: str
+    status: str
+    replaced_by: str | None = None
+    created_at: datetime
+    stopped_at: datetime | None = None
+
+
+class DeploymentMetricsResponse(DeploymentResponse):
+    request_count: int
+    error_count: int
+    avg_latency_ms: float | None = None
+    max_latency_ms: float | None = None
+
+
+class PredictJSONRequest(BaseModel):
+    features: dict
+
+
+class PredictJSONResponse(BaseModel):
+    status: str = "success"
+    deployment_id: str
+    model_version: int
+    prediction: object
+    latency_ms: float
+
+
+class MonitoringSnapshotResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    deployment_id: str
+    drift_type: str
+    n_rows: int
+    drift_detected: bool | None = None
+    drift_share: float | None = None
+    status: str
+    error_message: str | None = None
+    created_at: datetime
+    alert: bool = False
+
+
+class ChampionChallengerResponse(BaseModel):
+    model_name: str
+    champion: ModelVersionResponse | None = None
+    challenger: ModelVersionResponse
+    champion_metrics: dict | None = None
+    challenger_metrics: dict
+    recommendation: str

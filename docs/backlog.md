@@ -10,4 +10,8 @@
 - Rate limiting on login attempts / account lockout (no brute-force protection on `/auth/login` yet).
 - Token rotation / refresh-token flow (tokens are valid for their full TTL or until explicit revocation).
 - Purging `MLForge_files/api_uploads/`+`pickle_files/` from git **history** (not just the working tree) — untracked in the hardening pass, but the pre-engagement "Initial commit" still has them; a history rewrite needs the user's explicit go-ahead (force-push implications).
-- Running the real Alembic migration chain (0001→0003) against an actual Phase 1 SQLite file to confirm the upgrade path in practice — reviewed by inspection only so far, no interpreter available to execute it.
+- ~~Running the real Alembic migration chain against an actual SQLite file~~ — done (`0001→0004`, plus a downgrade/re-upgrade of 0004); see `docs/implementation-status.md`.
+- OpenTelemetry tracing and Grafana dashboards (Phase 3 scope) — not started. Both need an external collector/Grafana server to verify meaningfully; `/metrics` is scrape-ready for Prometheus in the meantime.
+- Batch inference enhancements beyond the existing CSV-based `/predict` (the transformation prompt's Phase 3 scope mentions this distinctly from real-time JSON prediction, which Phase 3 does add).
+- PostgreSQL migration, Redis+RQ async execution, retention/cleanup job, rate limiting — still not started (carried over from Phase 2).
+- Deployment/monitoring/registry-compare frontend UI — Phase 3's new endpoints (`/deployments/*`, `/registry/compare`) have no React pages yet.

@@ -99,6 +99,14 @@ def list_versions(db: Session, owner_id: str | None) -> list[ModelVersion]:
     return db.execute(stmt).scalars().all()
 
 
+def get_current_production(db: Session, owner_id: str | None, model_name: str) -> ModelVersion | None:
+    stmt = _owner_filter(
+        select(ModelVersion).where(ModelVersion.model_name == model_name, ModelVersion.lifecycle_state == "production"),
+        owner_id,
+    )
+    return db.execute(stmt).scalars().first()
+
+
 def promote(db: Session, version: ModelVersion, job: Job, target_state: str) -> ModelVersion:
     if target_state not in LIFECYCLE_STATES:
         raise RegistryError(f"target_state must be one of {LIFECYCLE_STATES}")

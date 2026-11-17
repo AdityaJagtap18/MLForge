@@ -2,7 +2,9 @@
 
 Status values: `Not started` · `Partially implemented` · `Implemented` · `Tested` · `Documented` · `Deferred` · `Blocked`.
 
-**Important caveat on this update:** the environment this Phase 1 work was written in has no working Python or Node.js interpreter (only Windows Store app-alias stubs). Nothing below has been executed — not the pytest suite, not a manual `uvicorn`/API smoke test, not `npm install`/`npm run build`. Everything marked `Partially implemented` here means "written, internally consistent on inspection, not run." Do not treat anything as `Tested` until you've actually run `pytest` and exercised the API/frontend yourself and reported back.
+**Update (Phase 2 verification gate + Phase 3):** a real Python 3.12 + Node.js environment is now available (installed via winget partway through this engagement). As of this update, `pytest` has actually been run (**71 passed, 0 failed**, covering Phases 1/2/the hardening pass/Phase 3), `alembic upgrade head` has been run against a fresh SQLite database (`0001→0002→0003→0004`, including a downgrade/re-upgrade of 0004), and `npm run build` has been run for the frontend (passes). Two real defects were found and fixed this way (see the hardening section below) that inspection alone had missed. Everything below that still says "written, not run" predates this — the caveat paragraph is kept for historical accuracy, but check each row's own evidence column for whether it's since been exercised.
+
+**Original caveat (Phases 1–2, pre-verification):** the environment this work was originally written in had no working Python or Node.js interpreter. Nothing was executed — not the pytest suite, not a manual `uvicorn`/API smoke test, not `npm install`/`npm run build`. Everything marked `Partially implemented` meant "written, internally consistent on inspection, not run."
 
 | Requirement ID | Source | Implementation location | Test/evidence | Status | Phase |
 |---|---|---|---|---|---|
@@ -64,6 +66,27 @@ Status values: `Not started` · `Partially implemented` · `Implemented` · `Tes
 - Git history still contains the pre-engagement commit of `api_uploads/`/`pickle_files/` -- untracking only prevents new commits; purging history requires a force-push and is a separate decision for the user (same as the Phase 0 finding).
 - No automatic migration runner on startup (`init_db()` uses `Base.metadata.create_all`, which creates missing tables but does not alter existing ones) -- an existing Phase 1-schema SQLite file would need `alembic upgrade head` run explicitly before this code can use it safely. Not auto-run, by design (never touch a real user database without being asked).
 - Token rotation / refresh tokens, rate limiting on login attempts, and account lockout are not implemented.
+
+## Phase 2 verification gate (`feature/phase2-hardening`, executed for real)
+
+With a real interpreter installed: **pytest 55/55 passed**, Alembic `0001→0003` clean on a fresh SQLite DB, the two-users-same-model-name registry ownership isolation tests passed, and `npm run build` passed. Two real defects were found and fixed:
+- `api/auth.py`: `AccessToken.expires_at` round-trips through SQLite as a naive datetime even on a `DateTime(timezone=True)` column; comparing it to an aware `datetime.now(timezone.utc)` raised `TypeError` on every authenticated request. Fixed by normalizing to UTC-aware before comparing.
+- `alembic/versions/0002`: `batch_alter_table("jobs").add_column()` with an inline, unnamed `ForeignKey` fails under SQLite's recreate-table batch mode. Named it explicitly.
+
+## Phase 3 — Deployment and monitoring (`feature/phase3-deployment-monitoring`)
+
+| Requirement ID | Implementation location | Test/evidence | Status |
+|---|---|---|---|
+| Real-time JSON prediction | `api/routers/deployments.py::predict_json`, `Deployment`/`RequestLog` tables | `tests/test_deployment_monitoring.py` (success, missing-field, inactive-deployment cases) -- **71/71 passed** | Implemented, tested |
+| Deployment lifecycle (deploy/rollback/stop, ownership-scoped) | `api/deployment_service.py` -- only `staging`/`production` versions deployable; deploying replaces the prior active deployment for that owner+model_name slot, same pattern as registry promote/rollback | `test_deploy_and_metrics`, `test_deploying_new_version_replaces_old_and_rollback_restores_it`, `test_user_cannot_deploy_or_control_another_users_resources` -- passed | Implemented, tested |
+| Request count/latency/error capture | `api/deployment_service.py::log_request`/`deployment_metrics`, `RequestLog` table | Covered by the real-time-predict tests above | Implemented, tested |
+| Evidently data-drift monitoring | `api/integrations/evidently_adapter.py` (graceful-degrade, same contract as the MLflow adapter), `api/monitoring_service.py`, `MonitoringSnapshot` table | `test_monitoring_identical_distribution_...`, `test_monitoring_shifted_distribution_is_flagged_when_evidently_available`, `test_monitoring_history_is_listed`, `test_monitoring_rejects_window_missing_required_columns` -- passed (evidently is actually installed in this environment, so these exercised the real drift computation, not just the degrade path) | Implemented, tested |
+| Alert thresholding | `api/monitoring_service.py::is_alertable` (`MLFORGE_DRIFT_ALERT_SHARE`) | Covered by the shifted-distribution test above | Implemented, tested |
+| Champion/challenger comparison | `GET /api/v1/registry/compare` | `test_champion_challenger_compare_with_no_champion_yet`, `test_champion_challenger_compare_with_existing_champion`, `test_cannot_compare_another_users_challenger` -- passed | Implemented, tested |
+| Prometheus metrics | `api/integrations/prometheus_metrics.py`, `GET /metrics` | `test_metrics_endpoint_is_reachable_without_auth`, `test_metrics_endpoint_reflects_request_counts` -- passed | Implemented, tested |
+| OpenTelemetry tracing | n/a | **Not started** -- deferred: meaningful verification needs an external collector this sandbox can't stand up; see `docs/backlog.md` | Not started |
+| Grafana dashboards | n/a | **Not started** -- same reason; `/metrics` is scrape-ready for Prometheus, but no dashboard JSON was authored since there's nothing to render it against here | Not started |
+| Batch inference enhancements beyond existing `/predict` | n/a | **Not started** | Not started |
 
 ## Known gaps / deferred within Phase 1
 - `src/model.py`/`train.py`/`test.py`/`metrics.py` are superseded by `ml_core/` but not deleted yet (kept pending the user's own verification, per the transformation prompt's "don't delete legacy code until tested" rule).
