@@ -24,6 +24,7 @@ MLForge_files/mlruns/
 # Frontend
 frontend-react/node_modules/
 frontend-react/dist/
+frontend-react/tsconfig.tsbuildinfo
 node_modules/
 dist/
 
@@ -43,3 +44,6 @@ htmlcov/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local-only dev tooling config (machine-specific absolute paths)
+.claude/
