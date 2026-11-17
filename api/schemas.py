@@ -185,3 +185,33 @@ class ChampionChallengerResponse(BaseModel):
     champion_metrics: dict | None = None
     challenger_metrics: dict
     recommendation: str
+
+
+class RetrainingCandidateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    model_name: str
+    source: str  # manual | drift
+    reason: str | None = None
+    job_id: str
+    monitoring_snapshot_id: str | None = None
+    status: str  # pending | evaluated | rejected | approved | promotion_failed
+    evaluated_champion_version_id: str | None = None
+    evaluation: dict | None = None
+    evaluated_at: datetime | None = None
+    decision: str | None = None
+    decision_reason: str | None = None
+    decided_by: str | None = None
+    decided_at: datetime | None = None
+    promoted_version_id: str | None = None
+    triggered_by: str | None = None
+    created_at: datetime
+
+
+class RetrainingDecisionRequest(BaseModel):
+    reason: str | None = None
+
+
+class GenerateCandidateRequest(BaseModel):
+    model_version_id: str  # the registered version whose config to retrain with

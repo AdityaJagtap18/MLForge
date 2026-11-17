@@ -5,6 +5,7 @@ import { FindBestModel } from "./pages/FindBestModel";
 import { Logs } from "./pages/Logs";
 import { Overview } from "./pages/Overview";
 import { Predictions } from "./pages/Predictions";
+import { Retraining } from "./pages/Retraining";
 import { TrainModel } from "./pages/TrainModel";
 
 export default function App() {
@@ -21,7 +22,7 @@ export default function App() {
         <Route path="/deployments" element={<ComingSoon title="Deployments" phase="Phase 3" />} />
         <Route path="/monitoring" element={<ComingSoon title="Monitoring" phase="Phase 3" />} />
         <Route path="/explainability" element={<ComingSoon title="Explainability" phase="Phase 2" />} />
-        <Route path="/pipelines" element={<ComingSoon title="Pipelines" phase="Phase 4" />} />
+        <Route path="/pipelines" element={<Retraining />} />
         <Route path="/settings" element={<ComingSoon title="Settings" phase="Phase 2 (accounts)" />} />
       </Routes>
     </AppShell>

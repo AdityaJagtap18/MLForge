@@ -14,6 +14,15 @@ from ml_core.task_detection import detect_task_type
 router = APIRouter(tags=["training"])
 
 
+def _owner_id(current_user) -> str | None:
+    # SystemPrincipal (legacy API-key bypass) owns nothing -- stay NULL in
+    # the DB, not the literal string "system", so registry_service's
+    # job.owner_id == owner_id checks (and anything else comparing against
+    # a real user id) stay consistent with how every other router computes
+    # this (deployments.py, registry.py, retraining.py).
+    return None if current_user.id == "system" else current_user.id
+
+
 @router.post("/train-model", response_model=TrainModelResponse)
 def train_model(
     db: Session = Depends(get_db),
@@ -40,7 +49,7 @@ def train_model(
         db,
         job_type="train",
         status="running",
-        owner_id=current_user.id,
+        owner_id=_owner_id(current_user),
         dataset_filename=dataset_filename,
         dataset_fingerprint=fingerprint,
         model_name=model_name,
@@ -89,7 +98,7 @@ def find_best_model(
         db,
         job_type="find_best",
         status="running",
-        owner_id=current_user.id,
+        owner_id=_owner_id(current_user),
         dataset_filename=dataset_filename,
         dataset_fingerprint=fingerprint,
         input_cols=input_cols_list,

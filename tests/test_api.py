@@ -122,3 +122,27 @@ def test_write_endpoints_require_api_key_when_configured(client, monkeypatch):
     assert resp.status_code == 401
     resp = client.get("/api/v1/jobs", headers={"X-API-Key": "secret-123"})
     assert resp.status_code == 200
+
+
+def test_system_principal_jobs_get_null_owner_not_the_literal_string_system(client):
+    """Regression test: training.py/predict.py once stored owner_id=current_user.id
+    verbatim, which for SystemPrincipal is the string "system", not NULL --
+    inconsistent with every other router (registry/deployments/retraining),
+    which normalize to None. That mismatch broke registry_service.register_version's
+    `job.owner_id != owner_id` ownership check for any SystemPrincipal-created
+    job. Caught by actually running the API during Phase 4 verification, not
+    by inspection."""
+    files = {"file": ("data.csv", _classification_csv(), "text/csv")}
+    resp = client.post(
+        "/api/v1/train-model",
+        files=files,
+        data={"model_name": "Logistic Regression", "input_cols": "age,city", "target_col": "label", "model_params": "{}"},
+    )
+    assert resp.status_code == 200
+    job_id = resp.json()["job_id"]
+
+    job = client.get(f"/api/v1/jobs/{job_id}").json()
+    assert job is not None
+
+    reg_resp = client.post(f"/api/v1/registry/{job_id}/register")
+    assert reg_resp.status_code == 200  # would 400 ("not your job") before the fix

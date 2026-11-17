@@ -12,6 +12,10 @@ from api.schemas import PredictResponse
 router = APIRouter(tags=["predict"])
 
 
+def _owner_id(current_user) -> str | None:
+    return None if current_user.id == "system" else current_user.id
+
+
 @router.post("/predict", response_model=PredictResponse)
 def predict(
     db: Session = Depends(get_db),
@@ -38,7 +42,7 @@ def predict(
         db,
         job_type="predict",
         status="running",
-        owner_id=current_user.id,
+        owner_id=_owner_id(current_user),
         dataset_filename=dataset_filename,
         dataset_fingerprint=fingerprint,
         model_name=source_job.model_name,

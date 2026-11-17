@@ -169,3 +169,57 @@ class MonitoringSnapshot(Base):
     status: Mapped[str] = mapped_column(String(16), default="ok")  # ok | unavailable | error (same honesty contract as Job.tracking_status)
     error_message: Mapped[str] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
+
+
+class RetrainingCandidate(Base):
+    """Phase 4: a retraining run under evaluation, manual or drift-triggered.
+
+    This is the audit record, not a second registry -- it never holds
+    lifecycle state of its own. Promotion happens exclusively through
+    registry_service.promote()/register_version() (docs/adr/0004); this
+    table only records that an explicit human approval authorized it, and
+    which champion was compared against (`evaluated_champion_version_id`,
+    revalidated at approval time -- see api/retraining_service.py).
+
+    status: pending (job running) -> evaluated (passed gate, awaiting human
+    decision) | rejected (gate failure, automatic, OR explicit human
+    rejection) -> approved (promoted) | promotion_failed (approved but the
+    registry call itself failed -- distinct from "rejected" so the audit
+    trail doesn't claim a human rejected something they actually approved).
+    """
+
+    __tablename__ = "retraining_candidates"
+    __table_args__ = (
+        # One candidate per monitoring alert -- a second drift check against
+        # the same snapshot must reuse the existing candidate, never create
+        # a duplicate (subphase 4C).
+        UniqueConstraint("monitoring_snapshot_id", name="uq_retraining_candidates_monitoring_snapshot_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    owner_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=True, index=True)
+    model_name: Mapped[str] = mapped_column(String(128), index=True)
+    source: Mapped[str] = mapped_column(String(16))  # manual | drift
+    reason: Mapped[str] = mapped_column(String(500), nullable=True)  # human-readable: why this candidate exists
+
+    job_id: Mapped[str] = mapped_column(String(36), ForeignKey("jobs.id"), index=True)  # the new retraining run
+    monitoring_snapshot_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("monitoring_snapshots.id"), nullable=True, index=True
+    )  # set only when source == "drift"
+
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    # pending | evaluated | rejected | approved | promotion_failed
+
+    evaluated_champion_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("model_versions.id"), nullable=True)
+    evaluation: Mapped[dict] = mapped_column(JSON, nullable=True)  # {candidate_score, champion_score, gate_threshold, passed, reason}
+    evaluated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    decision: Mapped[str] = mapped_column(String(16), nullable=True)  # approved | rejected
+    decision_reason: Mapped[str] = mapped_column(String(500), nullable=True)
+    decided_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    promoted_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("model_versions.id"), nullable=True)
+
+    triggered_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)  # who/what created it
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)

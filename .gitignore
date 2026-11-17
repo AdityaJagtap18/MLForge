@@ -44,3 +44,6 @@ htmlcov/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local-only dev tooling config (machine-specific absolute paths)
+.claude/

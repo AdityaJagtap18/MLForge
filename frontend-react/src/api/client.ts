@@ -10,7 +10,10 @@ import type {
   HealthResponse,
   JobSummary,
   ModelsResponse,
+  ModelVersion,
   PredictResponse,
+  RetrainingAudit,
+  RetrainingCandidate,
   TrainModelResponse,
 } from "./types";
 import { ApiError } from "./types";
@@ -51,4 +54,33 @@ export const api = {
 
   listJobs: (jobType?: string) =>
     request<JobSummary[]>(`/api/v1/jobs${jobType ? `?job_type=${jobType}` : ""}`),
+
+  listRegistryVersions: () => request<ModelVersion[]>("/api/v1/registry"),
+
+  triggerRetraining: (modelVersionId: string) =>
+    request<RetrainingCandidate>("/api/v1/retraining/trigger", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model_version_id: modelVersionId }),
+    }),
+
+  listRetrainingCandidates: () => request<RetrainingCandidate[]>("/api/v1/retraining"),
+
+  evaluateCandidate: (id: string) => request<RetrainingCandidate>(`/api/v1/retraining/${id}/evaluate`, { method: "POST" }),
+
+  approveCandidate: (id: string, reason?: string) =>
+    request<RetrainingCandidate>(`/api/v1/retraining/${id}/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason ?? null }),
+    }),
+
+  rejectCandidate: (id: string, reason?: string) =>
+    request<RetrainingCandidate>(`/api/v1/retraining/${id}/reject`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason ?? null }),
+    }),
+
+  getCandidateAudit: (id: string) => request<RetrainingAudit>(`/api/v1/retraining/${id}/audit`),
 };
