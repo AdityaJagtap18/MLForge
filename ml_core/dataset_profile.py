@@ -8,6 +8,11 @@ import pandas as pd
 
 
 def profile_dataset(df: pd.DataFrame, target_col: str | None = None) -> dict:
+    """Read-only: never mutates the caller's dataframe. Operates on a
+    defensive copy, even though every operation below is already
+    non-mutating, so that invariant holds even if a future edit here adds
+    an in-place step by mistake."""
+    df = df.copy()
     n_rows, n_cols = df.shape
     duplicate_rows = int(df.duplicated().sum())
 

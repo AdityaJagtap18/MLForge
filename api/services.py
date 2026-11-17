@@ -7,6 +7,7 @@ one near-empty file per name.
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import pickle
 import uuid
@@ -20,8 +21,10 @@ from sqlalchemy.orm import Session
 from api.db_models import Job
 from api.integrations import mlflow_adapter
 from ml_core import catalog
-from ml_core.prediction import predict as run_prediction
+from ml_core.prediction import PredictionValidationError, predict as run_prediction
 from ml_core.training import TrainingValidationError, train_one_model
+
+logger = logging.getLogger("mlforge.services")
 
 MAX_UPLOAD_BYTES = int(os.environ.get("MLFORGE_MAX_UPLOAD_BYTES", 50 * 1024 * 1024))  # 50MB
 ALLOWED_EXTENSIONS = {".csv"}
@@ -143,11 +146,19 @@ def run_train_job(db: Session, job: Job, df: pd.DataFrame, model_params: dict) -
                 task_type=job.task_type,
             )
         except (TrainingValidationError, catalog.UnknownModelError) as exc:
-            return finish_job(db, job, status="failed", error_message=str(exc), mlflow_run_id=run.run_id)
+            return finish_job(
+                db, job, status="failed", error_message=str(exc), mlflow_run_id=run.run_id, tracking_status=run.status
+            )
         except Exception:
             # BUG-05 fix: never return raw tracebacks/stderr to API callers.
+            logger.exception("Training job %s failed", job.id)
             return finish_job(
-                db, job, status="failed", error_message="Training failed due to an internal error.", mlflow_run_id=run.run_id
+                db,
+                job,
+                status="failed",
+                error_message="Training failed due to an internal error.",
+                mlflow_run_id=run.run_id,
+                tracking_status=run.status,
             )
 
         run.log_metrics(result.metrics)
@@ -161,6 +172,7 @@ def run_train_job(db: Session, job: Job, df: pd.DataFrame, model_params: dict) -
             metrics=metrics_with_split_sizes,
             pickle_path=pickle_path,
             mlflow_run_id=run.run_id,
+            tracking_status=run.status,
         )
 
 
@@ -201,7 +213,12 @@ def run_find_best_job(db: Session, job: Job, df: pd.DataFrame, task_type: str) -
 
         if not results or best_name is None:
             return finish_job(
-                db, job, status="failed", error_message="No candidate model trained successfully.", mlflow_run_id=parent_run.run_id
+                db,
+                job,
+                status="failed",
+                error_message="No candidate model trained successfully.",
+                mlflow_run_id=parent_run.run_id,
+                tracking_status=parent_run.status,
             )
 
         parent_run.log_metrics(best_metrics or {})
@@ -217,6 +234,7 @@ def run_find_best_job(db: Session, job: Job, df: pd.DataFrame, task_type: str) -
             results=results,
             pickle_path=pickle_path,
             mlflow_run_id=parent_run.run_id,
+            tracking_status=parent_run.status,
         )
 
 
@@ -226,8 +244,14 @@ def run_predict_job(db: Session, source_job: Job, predict_job: Job, df: pd.DataF
         predictions = run_prediction(pipeline, df, source_job.input_cols)
     except FileNotFoundError:
         return finish_job(db, predict_job, status="failed", error_message="Trained model artifact not found."), []
-    except Exception as exc:
-        return finish_job(db, predict_job, status="failed", error_message=str(exc)[:500]), []
+    except PredictionValidationError as exc:
+        # User-input problem (e.g. missing column) -- safe to surface verbatim, no paths involved.
+        return finish_job(db, predict_job, status="failed", error_message=str(exc)), []
+    except Exception:
+        # BUG-05-style fix: never return raw exception text (may contain
+        # filesystem paths or other internals) to API callers.
+        logger.exception("Prediction job %s failed", predict_job.id)
+        return finish_job(db, predict_job, status="failed", error_message="Prediction failed due to an internal error."), []
 
     finish_job(db, predict_job, status="succeeded", metrics={"n_predictions": len(predictions)})
     return predict_job, predictions.tolist()

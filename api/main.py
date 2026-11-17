@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.db import init_db
-from api.deps import API_KEY
+from api.deps import API_KEY, ENVIRONMENT, IS_PRODUCTION
 from api.routers import auth, catalog_router, datasets, explain, health, jobs, predict, registry, training
 
 logger = logging.getLogger("mlforge")
@@ -27,11 +27,22 @@ app.add_middleware(
 @app.on_event("startup")
 def _startup() -> None:
     init_db()
-    if API_KEY is None:
+    logger.info("MLFORGE_ENV=%s (IS_PRODUCTION=%s)", ENVIRONMENT, IS_PRODUCTION)
+    if IS_PRODUCTION:
+        if API_KEY is None:
+            logger.warning(
+                "Running with MLFORGE_ENV=%s and no MLFORGE_API_KEY set. The local-dev "
+                "auth bypass is disabled in this mode either way (every request needs a "
+                "valid bearer token), but the legacy service-account path is unavailable "
+                "until MLFORGE_API_KEY is set.",
+                ENVIRONMENT,
+            )
+    elif API_KEY is None:
         logger.warning(
-            "MLFORGE_API_KEY is not set — write endpoints fall back to Phase 1's "
-            "local-dev auth bypass until the first user registers. "
-            "Set MLFORGE_API_KEY (or require registered users) before deploying beyond local development."
+            "MLFORGE_API_KEY is not set and MLFORGE_ENV=development — write endpoints "
+            "fall back to the local-dev auth bypass until the first user registers. "
+            "Set MLFORGE_ENV=production (and MLFORGE_API_KEY, if you need the legacy "
+            "service-account path) before deploying beyond local development."
         )
 
 

@@ -53,12 +53,18 @@ class JobSummary(BaseModel):
 
 
 class JobDetail(JobSummary):
+    # Deliberately no pickle_path / filesystem path here -- internal
+    # implementation detail, never part of a public API response. The
+    # artifact is only ever loaded server-side via api/services.py using
+    # the DB row directly (api/routers/explain.py, predict.py), never via a
+    # path handed back to a client.
     input_cols: list | None = None
     target_col: str | None = None
     model_params: dict | None = None
     metrics: dict | None = None
     results: list | None = None
-    pickle_path: str | None = None
+    mlflow_run_id: str | None = None
+    tracking_status: str | None = None
 
 
 class HealthResponse(BaseModel):
@@ -82,6 +88,10 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user_id: str
     email: str
+
+
+class LogoutResponse(BaseModel):
+    revoked: bool
 
 
 class DatasetProfileResponse(BaseModel):

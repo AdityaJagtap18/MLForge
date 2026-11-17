@@ -33,7 +33,12 @@ def upgrade() -> None:
     op.create_index("ix_access_tokens_user_id", "access_tokens", ["user_id"])
 
     with op.batch_alter_table("jobs") as batch_op:
-        batch_op.add_column(sa.Column("owner_id", sa.String(length=36), sa.ForeignKey("users.id"), nullable=True))
+        # SQLite batch mode (table recreate) requires every constraint to be
+        # named -- an inline sa.ForeignKey() with no name raises
+        # "ValueError: Constraint must have a name" here.
+        batch_op.add_column(
+            sa.Column("owner_id", sa.String(length=36), sa.ForeignKey("users.id", name="fk_jobs_owner_id_users"), nullable=True)
+        )
         batch_op.add_column(sa.Column("dataset_fingerprint", sa.String(length=64), nullable=True))
         batch_op.add_column(sa.Column("mlflow_run_id", sa.String(length=64), nullable=True))
     op.create_index("ix_jobs_owner_id", "jobs", ["owner_id"])

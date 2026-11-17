@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 import pandas as pd
@@ -11,7 +12,10 @@ from api.auth import require_auth_if_configured
 from api.db import get_db
 from api.db_models import Job
 from api.schemas import ExplainResponse
-from ml_core.explainability import ExplainabilityUnavailable, global_feature_importance
+from ml_core import explainability as explainability_module
+from ml_core.explainability import ExplainabilityUnavailable
+
+logger = logging.getLogger("mlforge.explain")
 
 router = APIRouter(tags=["explainability"], dependencies=[Depends(require_auth_if_configured)])
 
@@ -33,11 +37,14 @@ def explain(job_id: str, db: Session = Depends(get_db), current_user=Depends(req
     try:
         pipeline = services.load_pipeline(job.pickle_path)
         df = pd.read_csv(dataset_path)
-        importance = global_feature_importance(pipeline, df[job.input_cols])
+        importance = explainability_module.global_feature_importance(pipeline, df[job.input_cols])
     except ExplainabilityUnavailable as exc:
+        # ExplainabilityUnavailable messages are authored in ml_core/explainability.py
+        # to never include a filesystem path -- safe to return verbatim.
         return ExplainResponse(job_id=job_id, supported=False, message=exc.message)
-    except Exception as exc:
-        return ExplainResponse(job_id=job_id, supported=False, message=f"Could not compute explanation: {exc}"[:500])
+    except Exception:
+        logger.exception("Explanation failed for job %s", job_id)
+        return ExplainResponse(job_id=job_id, supported=False, message="Could not compute an explanation for this model.")
 
     return ExplainResponse(
         job_id=job_id,
