@@ -15,3 +15,8 @@
 - Batch inference enhancements beyond the existing CSV-based `/predict` (the transformation prompt's Phase 3 scope mentions this distinctly from real-time JSON prediction, which Phase 3 does add).
 - PostgreSQL migration, Redis+RQ async execution, retention/cleanup job, rate limiting — still not started (carried over from Phase 2).
 - Deployment/monitoring/registry-compare frontend UI — Phase 3's new endpoints (`/deployments/*`, `/registry/compare`) have no React pages yet.
+- Scheduled retraining (periodic/cron) — explicitly out of scope for Phase 4 per the transformation prompt; only manual and drift-triggered candidate generation exist.
+- Drift-triggered retraining candidates reuse the original training dataset, not the monitoring window that flagged the drift — training "on the new data" is a materially bigger feature than Phase 4 scoped.
+- The Pipelines (retraining) frontend page doesn't show a drift-triggered candidate's source `ModelVersion` name/version, only the monitoring snapshot id — minor UX gap.
+- `approve_candidate()`'s two-step promotion (`register_version` → `promote(staging)` → `promote(production)`) can leave a version sitting in `staging` if the production quality gate fails on the second promote call (each registry call commits independently) — the candidate is marked `promotion_failed` so this is visible and auditable, but the orphaned staging version isn't auto-cleaned-up.
+- A dedicated generic `audit_events` table was not introduced — `RetrainingCandidate`'s own FKs/timestamps plus `GET /retraining/{id}/audit` (which resolves the chain) serve that purpose for Phase 4; revisit if a cross-entity audit view spanning *all* modules (not just retraining) is ever needed.

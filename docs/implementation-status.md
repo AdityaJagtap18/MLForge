@@ -88,6 +88,36 @@ With a real interpreter installed: **pytest 55/55 passed**, Alembic `0001→0003
 | Grafana dashboards | n/a | **Not started** -- same reason; `/metrics` is scrape-ready for Prometheus, but no dashboard JSON was authored since there's nothing to render it against here | Not started |
 | Batch inference enhancements beyond existing `/predict` | n/a | **Not started** | Not started |
 
+## Phase 4 — Controlled automation (`feature/phase4-controlled-automation`, executed for real)
+
+Base: `feature/phase3-deployment-monitoring` (contains all Phase 1–3 + hardening-pass functional commits -- verified via `git merge-base --is-ancestor` before starting; see the branch-status note below).
+
+| Requirement ID | Implementation location | Test/evidence | Status |
+|---|---|---|---|
+| 4A: manual retraining (reuses config/dataset, links candidate+job, preserves ownership, never touches champion) | `api/retraining_service.py::trigger_manual_retraining`, `POST /api/v1/retraining/trigger` | `tests/test_retraining.py` (4 tests) -- **passed** | Implemented, tested |
+| 4B: candidate evaluation vs. champion, quality gate reuse, stale-evaluation/missing-evaluation guards | `api/retraining_service.py::evaluate_candidate`, `POST /api/v1/retraining/{id}/evaluate` | 7 tests -- **passed** | Implemented, tested |
+| 4C: drift-triggered candidate generation, duplicate-alert prevention | `api/retraining_service.py::generate_from_drift`, `POST /api/v1/retraining/from-snapshot/{snapshot_id}`, `UniqueConstraint(monitoring_snapshot_id)` | 3 tests -- **passed** | Implemented, tested |
+| 4D: human approval/rejection, authorization, double-decision guard, registry promotion, audit trail | `api/retraining_service.py::approve_candidate`/`reject_candidate`, `POST /api/v1/retraining/{id}/approve`\|`/reject`, `GET /api/v1/retraining/{id}/audit` | 5 tests -- **passed** | Implemented, tested |
+| Frontend: trigger, inspect, evaluate, approve/reject, audit | `frontend-react/src/pages/Retraining.tsx` (reuses the `/pipelines` nav item, previously a placeholder) | `npm run build` passes; exercised live in the browser against the running backend (see below) | Implemented, tested |
+
+**Full regression after Phase 4:** `pytest -q` → **91 passed, 0 failed** (72 pre-existing + 19 new). `npm run build` → passes. Alembic `0001→0005` clean on a fresh SQLite DB; `0004→0005` also verified against a database pre-populated with a real row (data preserved), plus a `0005→0004` downgrade and re-upgrade.
+
+**One real defect found and fixed via live verification (not by inspection or pytest):** `api/routers/training.py` and `api/routers/predict.py` stored `owner_id=current_user.id` verbatim, which for the `SystemPrincipal` (legacy no-auth/API-key path) is the literal string `"system"`, not `NULL` -- inconsistent with every other router (`deployments.py`, `registry.py`, `retraining.py`), which already normalized this. The mismatch broke `registry_service.register_version()`'s `job.owner_id != owner_id` ownership check for any job created without a real user token, which blocked `approve_candidate()`'s registry call in exactly that scenario. Fixed by adding the same `_owner_id()` normalization helper to both routers; regression test added (`tests/test_api.py::test_system_principal_jobs_get_null_owner_not_the_literal_string_system`).
+
+**Live manual walkthrough** (both servers running against the real SQLite DB, through the browser): trained a model → registered it → promoted to staging → promoted to production (champion) → triggered manual retraining from the Pipelines page → candidate appeared with status `pending` → clicked "Evaluate" → the candidate retrained on the identical dataset, tied the champion's score exactly, and was **automatically rejected** (`"Candidate score ... does not exceed champion score ..."`) -- demonstrating the quality gate's conservative tie-breaking live, not just in a test with a forced score.
+
+### Design decisions worth recording
+- **Approval promotes all the way to production, not just staging.** `approve_candidate()` calls `registry_service.register_version()` then `promote(..., "staging")` then `promote(..., "production")` inside one explicit human-initiated call. This still satisfies "no automatic production promotion" (there is no scheduler or drift handler that calls `approve_candidate()` on its own -- only `POST /retraining/{id}/approve`, invoked by an authorized human, ever does), while giving a reviewer one unambiguous action.
+- **No new generic audit-log table.** `RetrainingCandidate`'s own columns (plus its FKs to `Job`/`MonitoringSnapshot`/`ModelVersion`) already are the audit record; `GET /retraining/{id}/audit` resolves the chain into one response rather than introducing a separate `audit_events` table, which would have duplicated information already captured.
+- **Drift-triggered candidates reuse the source version's original dataset/config**, not the drifted monitoring window itself -- the spec didn't ask for incorporating new data into retraining, only for a drift alert to produce a retraining *candidate*; expanding that into "train on the new window" would be a materially bigger feature than scoped here. Documented as a known limitation below.
+- **Concurrency**: `approve_candidate()` re-reads `candidate.status` via `db.refresh()` before deciding, and relies on SQLite/PostgreSQL's single-writer transaction serialization rather than a dedicated optimistic-lock version column -- sufficient at this scale per the spec's own "Redis/RQ solely for this phase" exclusion, but not a formal distributed lock.
+
+### Known limitations
+- Drift-triggered retraining always reuses the original training dataset, not the monitoring window that triggered it.
+- No scheduled/periodic retraining (explicitly out of scope).
+- The frontend's Pipelines page does not show the originating `ModelVersion`'s name/version for a drift-triggered candidate by id lookup (only the monitoring snapshot id) -- a minor UX gap, not a correctness one.
+- Approval's two-step `promote()` call (staging then production) means a quality-gate failure on the *second* call leaves the version sitting in `staging`, not `development` -- `candidate.status` is set to `promotion_failed` in that case so it's visible or in the audit trail, but the orphaned `staging` version is not automatically cleaned up.
+
 ## Known gaps / deferred within Phase 1
 - `src/model.py`/`train.py`/`test.py`/`metrics.py` are superseded by `ml_core/` but not deleted yet (kept pending the user's own verification, per the transformation prompt's "don't delete legacy code until tested" rule).
 - Legacy static `frontend/` is kept until the React app's parity checklist (`docs/ui/visual-spec.md` §9) is actually run in a browser.

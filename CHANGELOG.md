@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased] — Phase 4: Controlled automation (`feature/phase4-controlled-automation`)
+
+Executed, not just written: **pytest 91/91 passed**, Alembic `0001→0005` clean on both a fresh SQLite DB and one pre-populated with real data (plus a `0005` downgrade/re-upgrade), `npm run build` passed, and the full trigger→evaluate→decide workflow was exercised live through the browser against the running backend.
+
+### Added
+- `RetrainingCandidate` table (`alembic/versions/0005`) and `api/retraining_service.py`: the only path in this codebase that can promote a retraining candidate to production, and it only runs in response to an explicit, authorized, human-initiated API call.
+- `POST /api/v1/retraining/trigger` (4A, manual retraining — reuses the source model version's original dataset/config, links the new job to a candidate, never touches the current champion).
+- `POST /api/v1/retraining/{id}/evaluate` (4B — compares the candidate against the current production champion using the existing registry quality gate; auto-rejects on gate failure; blocks approval on missing/stale evaluation).
+- `POST /api/v1/retraining/from-snapshot/{snapshot_id}` (4C — drift-triggered candidate generation from a `MonitoringSnapshot`; idempotent, a `UniqueConstraint` plus an application-level check prevent duplicate candidates for the same alert).
+- `POST /api/v1/retraining/{id}/approve` / `/reject`, `GET /api/v1/retraining/{id}/audit` (4D — human approval/rejection with ownership enforcement, a double-decision guard, and a queryable audit chain: `MonitoringSnapshot → RetrainingCandidate → Job → Evaluation → Approval → ModelVersion`).
+- `frontend-react/src/pages/Retraining.tsx` — trigger, inspect, evaluate, approve/reject, served from the existing `/pipelines` nav item (previously a placeholder).
+
+### Fixed
+- `api/routers/training.py`, `api/routers/predict.py`: jobs created via the legacy no-auth/API-key path (`SystemPrincipal`) were stored with `owner_id="system"` (the literal string), not `NULL` — inconsistent with every other router, and silently breaking `registry_service.register_version()`'s ownership check for exactly that case. Found by actually running the API during Phase 4's live verification, not by inspection. Fixed with the same `_owner_id()` normalization already used elsewhere; regression test added.
+
+### Not done this pass
+- Scheduled/periodic retraining (explicitly out of scope).
+- Drift-triggered candidates retrain on the *original* dataset, not the drifted monitoring window.
+- No new generic audit-log table (the candidate row's own FKs/timestamps, resolved via `GET /retraining/{id}/audit`, serve that purpose here).
+
 ## [Unreleased] — Phase 3: Deployment and monitoring (`feature/phase3-deployment-monitoring`)
 
 A real Python 3.12 + Node.js environment was installed this session (winget), so this pass was actually executed, not just written: **71/71 pytest passed**, Alembic `0001→0004` clean on a fresh SQLite DB (including a downgrade/re-upgrade of 0004), and `npm run build` passed.

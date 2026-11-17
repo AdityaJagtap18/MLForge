@@ -45,8 +45,11 @@ Scope:
 - Alerts/thresholds, champion/challenger comparison.
 - **Exit:** a registered model can be deployed, monitored, evaluated and safely rolled back end to end.
 
-## Phase 4 — Controlled automation (optional)
-Scope: scheduled/drift-triggered candidate retraining (never auto-promotes), candidate-vs-champion evaluation, approval gates, full audit trail. Only started once Phases 1–3 are stable and the user opts in.
+## Phase 4 — Controlled automation (optional) — delivered on `feature/phase4-controlled-automation`
+Scope delivered: manual retraining (reuses the source model's dataset/config); drift-triggered candidate generation from a `MonitoringSnapshot`, with duplicate-alert prevention; candidate evaluation against the current production champion, reusing the registry's existing quality gate; explicit human approval/rejection, with stale-evaluation and double-decision guards; promotion exclusively through `registry_service` (no second lifecycle authority); a full audit chain (`MonitoringSnapshot → RetrainingCandidate → Job → Evaluation → Approval → ModelVersion`) queryable via `GET /retraining/{id}/audit`; a minimal frontend page (`/pipelines`).
+Not delivered (deferred, see `docs/backlog.md`): scheduled/periodic retraining (explicitly out of scope per the transformation prompt), training on the drifted window itself (candidates reuse the original dataset), a generic cross-module audit-log table.
+Verified: `pytest` 91/91 passed, Alembic `0001→0005` clean on fresh and pre-populated databases (including a `0005` downgrade/re-upgrade), `npm run build` passed, and the full workflow (trigger → evaluate → auto-reject on a tied score) was exercised live through the browser against the running backend.
+**Exit criteria met:** see `docs/implementation-status.md`'s Phase 4 section for the full requirement-by-requirement trace.
 
 ## Cross-cutting, applies to every phase
 - Small Conventional-Commit-style commits on `feature/mlforge-mlops-foundation` (or a per-phase branch, to be confirmed with the user).
