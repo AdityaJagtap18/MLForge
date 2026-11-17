@@ -24,6 +24,7 @@ MLForge_files/mlruns/
 # Frontend
 frontend-react/node_modules/
 frontend-react/dist/
+frontend-react/.vite/
 frontend-react/tsconfig.tsbuildinfo
 node_modules/
 dist/
