@@ -1,0 +1,49 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Generated/runtime artifacts only -- never commit new ones (see
+# docs/architecture/current-state.md §5 and docs/hardening-baseline.md).
+# MLForge_files/bulk_upload_folder/, rawTraining/, MLForge_execution_groups/,
+# csv_configurations/, testing/, training/, text_classifier_train*/ are
+# legitimate seed/sample datasets and model catalogs -- intentionally NOT
+# ignored (corrects a Phase 1 mistake that over-broadly ignored them).
+MLForge_files/api_uploads/
+MLForge_files/pickle_files/
+MLForge_files/text_classifier_training_output/
+MLForge_files/training_output/
+MLForge_files/testing_output/
+*.pkl
+*.db
+*.sqlite3
+mlruns/
+MLForge_files/mlruns/
+
+# Frontend
+frontend-react/node_modules/
+frontend-react/dist/
+frontend-react/tsconfig.tsbuildinfo
+node_modules/
+dist/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Test/build output
+.pytest_cache/
+htmlcov/
+.coverage
+*.egg-info/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local-only dev tooling config (machine-specific absolute paths)
+.claude/

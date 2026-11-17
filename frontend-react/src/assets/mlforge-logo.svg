@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="64" viewBox="0 0 240 64" fill="none" role="img" aria-label="MLForge">
+  <defs>
+    <linearGradient id="forge" x1="8" y1="8" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#E85D04"/>
+    </linearGradient>
+  </defs>
+  <path d="M7 51 17 12h10l9 22 9-22h10l10 39H54l-5-23-9 21h-9l-9-21-5 23H7Z" fill="url(#forge)"/>
+  <text x="76" y="31" fill="#242424" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="750" letter-spacing="-1">MLForge</text>
+  <text x="77" y="49" fill="#77716B" font-family="Inter, Arial, sans-serif" font-size="9.5" font-weight="500" letter-spacing=".15">END-TO-END ML &amp; MLOPS PLATFORM</text>
+</svg>

@@ -1,0 +1,30 @@
+# MLForge — Backlog (deferred, out of active phase scope)
+
+- Text classification module rebuild without the MySQL dependency (PRD Phase 3, scope TBD in a follow-on addendum).
+- Optional hyperparameter search (`GridSearchCV`/`RandomizedSearchCV`) as an opt-in `/train-model` mode (PRD Phase 3).
+- Scheduled/recurring retraining against a periodically-updating dataset source (PRD Phase 3 / transformation prompt Phase 4).
+- Kubernetes, Kubeflow, Feast, Airflow, or any additional microservice split — not planned; would need a dedicated ADR with a demonstrated requirement.
+- Deep learning / neural architecture search beyond existing `MLPClassifier`/`MLPRegressor` catalog entries.
+- Multi-tenant organizations, billing, role hierarchies beyond job ownership.
+- ~~Disposition of `baml_model_tbl.csv`/`MLForge_execution_groups/*` as unrelated data~~ — corrected: `baml_model_tbl.csv` is the real model catalog (used to fix BUG-01) and `MLForge_execution_groups/*` are legitimate generic sample datasets. Neither is removed; both stay tracked in git (corrected again in the hardening pass — Phase 1 had wrongly `.gitignore`'d them).
+- Rate limiting on login attempts / account lockout (no brute-force protection on `/auth/login` yet).
+- Token rotation / refresh-token flow (tokens are valid for their full TTL or until explicit revocation).
+- Purging `MLForge_files/api_uploads/`+`pickle_files/` from git **history** (not just the working tree) — untracked in the hardening pass, but the pre-engagement "Initial commit" still has them; a history rewrite needs the user's explicit go-ahead (force-push implications).
+- ~~Running the real Alembic migration chain against an actual SQLite file~~ — done (`0001→0004`, plus a downgrade/re-upgrade of 0004); see `docs/implementation-status.md`.
+- OpenTelemetry tracing and Grafana dashboards (Phase 3 scope) — not started. Both need an external collector/Grafana server to verify meaningfully; `/metrics` is scrape-ready for Prometheus in the meantime.
+- Batch inference enhancements beyond the existing CSV-based `/predict` (the transformation prompt's Phase 3 scope mentions this distinctly from real-time JSON prediction, which Phase 3 does add).
+- PostgreSQL migration (Phase 2 carry-over) — connection string and testing exercise; current store remains SQLite.
+- Redis + RQ async execution (Phase 2 carry-over) — asynchronous training and retraining job queueing.
+- Artifact and dataset retention/cleanup job (Phase 2 carry-over) — automated purging of orphaned pickle files and old upload files.
+- Rate limiting and token rotation (Phase 2 carry-over) — brute-force protection on `/auth/login` and refresh-token rotation flow.
+- Deployment UI (Phase 3 carry-over) — React frontend views for `/deployments` lifecycle management.
+- Monitoring UI (Phase 3 carry-over) — React frontend views for `/monitoring` Evidently data-drift reports.
+- Explainability UI (Phase 2 carry-over) — React frontend views for `/explainability` global/local SHAP visualizer.
+- Settings UI (Phase 2 carry-over) — React frontend views for `/settings` account management and token revocation.
+- Frontend bundle-size optimization (Vite code splitting) — `index.js` chunk exceeds 500 kB; introduce dynamic `import()` for lazy route loading and manual chunk configuration.
+- ~~`approve_candidate()` two-step promotion orphaned staging version~~ — **Fixed in integration hardening**: transaction boundaries (`commit=False`) and compensating rollback guarantee no orphaned development or staging versions remain in the registry if production promotion fails.
+- Scheduled retraining (periodic/cron) — explicitly out of scope for Phase 4 per the transformation prompt; only manual and drift-triggered candidate generation exist.
+- Drift-triggered retraining candidates reuse the original training dataset, not the monitoring window that flagged the drift — training "on the new data" is a materially bigger feature than Phase 4 scoped.
+- The Pipelines (retraining) frontend page doesn't show a drift-triggered candidate's source `ModelVersion` name/version, only the monitoring snapshot id — minor UX gap.
+- `approve_candidate()`'s two-step promotion (`register_version` → `promote(staging)` → `promote(production)`) can leave a version sitting in `staging` if the production quality gate fails on the second promote call (each registry call commits independently) — the candidate is marked `promotion_failed` so this is visible and auditable, but the orphaned staging version isn't auto-cleaned-up.
+- A dedicated generic `audit_events` table was not introduced — `RetrainingCandidate`'s own FKs/timestamps plus `GET /retraining/{id}/audit` (which resolves the chain) serve that purpose for Phase 4; revisit if a cross-entity audit view spanning *all* modules (not just retraining) is ever needed.

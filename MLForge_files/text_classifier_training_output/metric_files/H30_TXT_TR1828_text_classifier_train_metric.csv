@@ -1,6 +1,0 @@
-Weighted_Average,_Model_Name_,_precision_,recall,_f1_score_,_support_,_accuracy_score_
-negative,DecisionTreeClassifier(),0.6,1.0,0.7499999999999999,3.0,0.6666666666666666
-positive,DecisionTreeClassifier(),1.0,0.3333333333333333,0.5,3.0,
-accuracy,DecisionTreeClassifier(),0.6666666666666666,0.6666666666666666,0.6666666666666666,0.6666666666666666,
-macro avg,DecisionTreeClassifier(),0.8,0.6666666666666666,0.625,6.0,
-weighted avg,DecisionTreeClassifier(),0.7999999999999999,0.6666666666666666,0.6249999999999999,6.0,

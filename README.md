@@ -1,203 +1,80 @@
-# MlForge - Machine Learning Model Builder Platform
+# MLForge
 
-A web-based platform for training and evaluating machine learning models with support for both classification and regression tasks using scikit-learn.
+A self-service tabular ML platform: CSV upload → preprocessing → training/AutoML search → prediction → (Phase 2+) experiment tracking, model registry, deployment and monitoring. See [`PRODUCT_REQUIREMENTS_DOCUMENT.md`](PRODUCT_REQUIREMENTS_DOCUMENT.md) for the full product spec and [`docs/implementation-plan.md`](docs/implementation-plan.md) for the phased build-out this repo is following.
 
-## Features
+> **Status:** Phase 2 in progress. Phase 1's training/search/predict/logs flows plus Phase 2's user accounts, MLflow tracking, dataset profiling, model registry and SHAP explainability are written; Postgres/Redis+RQ/retention are not started and Evidently/deployment (Phase 3) aren't either — see [`docs/implementation-status.md`](docs/implementation-status.md). **Nothing in this repo has been executed by the assistant session that wrote it** (no Python/Node available) — run the test suite yourself before trusting it.
 
-- **Model Training**: Train ML models on custom CSV datasets
-- **Auto Model Selection**: Automatically find the best performing model for your data
-- **Multiple Algorithms**: Support for 40+ scikit-learn algorithms including:
-  - Linear models (Linear Regression, Ridge, Lasso, ElasticNet, etc.)
-  - Classification models (Logistic Regression, SVM, Decision Trees, etc.)
-  - Neural networks (MLPClassifier, MLPRegressor)
-  - Ensemble methods and more
-- **Task Type Detection**: Automatic detection of classification vs regression tasks
-- **Model Evaluation**: Comprehensive metrics for model performance
-- **Web Interface**: User-friendly frontend for uploading data and managing models
-- **REST API**: FastAPI backend for programmatic access
-- **Model Persistence**: Save and load trained models as pickle files
-
-## Project Structure
+## Project structure
 
 ```
-MlForge/
-├── api/                          # FastAPI backend
-│   ├── main.py                   # Main API endpoints
-│   └── find-best-model.py        # Best model selection logic
-├── frontend/                     # Web interface
-│   ├── index.html                # Main page
-│   ├── app.js                    # Frontend logic
-│   ├── style.css                 # Styling
-│   ├── classification-analysis.html
-│   ├── regression-analysis.html
-│   ├── find-model.html
-│   └── use-model.html
-├── src/                          # Core ML training code
-│   ├── model.py                  # Model configuration and training
-│   ├── train.py                  # Training pipeline
-│   ├── test.py                   # Testing pipeline
-│   ├── metrics.py                # Performance metrics calculation
-│   └── config.py                 # Configuration management
-├── MlForge_files/                   # Data and outputs
-│   ├── csv_configurations/       # Model configuration CSVs
-│   ├── pickle_files/             # Saved trained models
-│   ├── training_output/          # Training results and metrics
-│   ├── api_uploads/              # Uploaded CSV files
-│   └── ...
-└── requirements.txt              # Python dependencies
+api/            FastAPI app: routers, services, DB models, schemas
+ml_core/        Catalog, preprocessing, training, metrics, prediction (in-process, no subprocess)
+alembic/        Database migrations
+frontend-react/ React + TypeScript + Vite frontend (replaces the legacy static frontend, see docs/adr/0001)
+frontend/       Legacy static HTML/JS frontend, kept until the React app reaches full parity (docs/adr/0001)
+src/            Legacy CLI training scripts, superseded by ml_core/ -- kept pending verification, not yet deleted
+tests/          pytest suite (unit + API)
+docs/           Architecture, ADRs, UI spec, implementation plan/status, backlog
+MLForge_files/  Runtime data: catalog CSVs (committed), uploads/pickles/db (gitignored, see .gitignore)
 ```
 
-## Installation
+## Backend setup
 
-### Prerequisites
-
-- Python 3.x
-- pip
-
-### Setup
-
-1. Clone the repository:
-```bash
-cd MlForge
-```
-
-2. Create a virtual environment:
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-## Usage
-
-### Starting the API Server
+Requires Python 3.12 (this repo was authored without a local Python available to the assistant session that wrote it — **the commands below have not been executed; please run and report back if anything fails**).
 
 ```bash
-cd api
-uvicorn main:app --reload
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
 ```
 
-The API will be available at `http://localhost:8000`
+Environment variables (see `.env.example`):
+- `MLFORGE_ENV` — `development` (default) or `production`. In `production`, the local-dev auth bypass never applies, even with no users yet — every request needs a valid API key or bearer token.
+- `MLFORGE_API_KEY` — legacy service-account bypass (`SystemPrincipal`, sees all users' resources). In `development` with no users registered yet, auth is skipped entirely if this is also unset (local-dev convenience).
+- `MLFORGE_TOKEN_TTL_DAYS` — bearer token lifetime, default 30.
+- `MLFORGE_CORS_ORIGINS` — comma-separated allowed origins; defaults to the Vite dev server.
+- `MLFORGE_DATABASE_URL` — defaults to a local SQLite file under `MLForge_files/`.
+- `MLFORGE_FILES_DIR` — defaults to `./MLForge_files`.
+- `MLFORGE_MLFLOW_ENABLED` — set to `false` to disable MLflow tracking entirely; defaults on but degrades to a no-op if `mlflow` isn't installed/reachable.
+- `MLFLOW_TRACKING_URI` — defaults to a local file store under `MLForge_files/mlruns`.
+- `MLFORGE_PROMOTION_MIN_SCORE` — minimum f1/r2 required to promote a model version to `production`; defaults to `0.0` (no gate — not the recommended production setting).
 
-### Accessing the Web Interface
-
-Open your browser and navigate to:
-```
-http://localhost:8000/frontend/index.html
-```
-
-### API Endpoints
-
-#### Get Available Models
-```bash
-GET /models
-```
-Returns a list of all available machine learning models.
-
-#### Train a Model
-```bash
-POST /train-model
-```
-**Parameters:**
-- `file`: CSV file containing training data
-- `model_name`: Name of the model to train
-- `input_cols`: Comma-separated list of input column names
-- `target_col`: Target column name
-- `model_params`: JSON string of model parameters (optional)
-
-**Response:**
-```json
-{
-  "status": "success",
-  "model_name": "Linear Regression",
-  "pickle_path": "MlForge_files/pickle_files/model.pkl",
-  "metrics_path": "MlForge_files/training_output/metric_files/model_metric.csv",
-  "logs": "..."
-}
-```
-
-#### Find Best Model
-```bash
-POST /find-best-model
-```
-**Parameters:**
-- `file`: CSV file containing training data
-- `input_cols`: Comma-separated list of input column names
-- `target_col`: Target column name
-- `task_type`: Either "classification" or "regression"
-
-**Response:**
-```json
-{
-  "status": "success",
-  "task_type": "classification",
-  "best_model": "Random Forest Classifier",
-  "results": [...]
-}
-```
-
-### Command Line Training
-
-You can also train models directly from the command line:
+Run the API:
 
 ```bash
-python3 src/model.py \
-  --header_id 1 \
-  --training_id my_training_job \
-  --csv_file_name path/to/data.csv \
-  --input_col feature1 feature2 feature3 \
-  --target_col target \
-  --model_name "Linear Regression" \
-  --model_params "{}"
+uvicorn api.main:app --reload
 ```
 
-## Configuration
+Docs at `http://127.0.0.1:8000/docs`. Versioned routes under `/api/v1`; the two original unversioned routes (`/models`, `/train-model`) are kept as deprecated aliases for one release (see `docs/adr/0005`).
 
-### Model Configuration
+Run tests:
 
-Models are configured in `MlForge_files/csv_configurations/model_capabilities.csv` with the following columns:
-- `MODEL_NAME`: Human-readable model name
-- `MODEL_CLASS`: scikit-learn class name
-- `IS_CLASSIFICATION`: 1 if model supports classification, 0 otherwise
-- `IS_REGRESSION`: 1 if model supports regression, 0 otherwise
+```bash
+pytest
+```
 
-### Adding New Models
+## Frontend setup
 
-1. Add the model entry to `MlForge_files/csv_configurations/model_capabilities.csv`
-2. Import the model class in `src/model.py`
-3. Restart the API server
+```bash
+cd frontend-react
+npm install
+cp .env.example .env   # set VITE_API_BASE_URL / VITE_API_KEY
+npm run dev
+```
 
-## Metrics
+Opens at `http://localhost:5173`.
 
-### Classification Metrics
-- Accuracy Score
-- F1 Score
-- Precision
-- Recall
-- Confusion Matrix
+## Docker Compose (local/staging)
 
-### Regression Metrics
-- R² Score
-- Mean Squared Error (MSE)
-- Root Mean Squared Error (RMSE)
-- Mean Absolute Error (MAE)
+```bash
+cp .env.example .env   # set MLFORGE_API_KEY
+docker compose up --build
+```
 
-## Technologies Used
+## What changed from the original brownfield app
 
-- **Backend**: FastAPI, Python 3
-- **ML Framework**: scikit-learn
-- **Data Processing**: pandas, numpy
-- **Frontend**: HTML, CSS, JavaScript
-- **Model Persistence**: pickle
+See [`docs/architecture/current-state.md`](docs/architecture/current-state.md) for the full audit. In short: BUG-01 through BUG-06 are fixed, `api/find-best-model.py` dead code is removed, training moved from subprocess-per-model to in-process calls behind a service layer, a preprocessing pipeline was added ahead of model fitting, a SQLite job-metadata store (via SQLAlchemy/Alembic) replaced the flat-file-only state, `/predict` and `/jobs` close the two biggest UI-promised-but-never-built gaps, and the frontend is migrating to React + TypeScript + Vite (`docs/adr/0001`).
 
 ## License
 
-This project is provided as-is for educational and development purposes.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+Provided as-is for educational and development purposes.

@@ -1,0 +1,21 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MLFORGE_API_KEY: ${MLFORGE_API_KEY:?set MLFORGE_API_KEY in .env or the shell environment}
+      MLFORGE_CORS_ORIGINS: ${MLFORGE_CORS_ORIGINS:-http://localhost:5173}
+      MLFORGE_FILES_DIR: /data
+    volumes:
+      - mlforge_data:/data
+
+  frontend:
+    build: ./frontend-react
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  mlforge_data:
