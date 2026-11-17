@@ -15,7 +15,11 @@ Executed, not just written: **pytest 91/91 passed**, Alembic `0001→0005` clean
 - `frontend-react/src/pages/Retraining.tsx` — trigger, inspect, evaluate, approve/reject, served from the existing `/pipelines` nav item (previously a placeholder).
 
 ### Fixed
+- `api/retraining_service.py` & `api/registry_service.py`: `approve_candidate()` now executes `register_version()`, `promote("staging")`, and `promote("production")` within a single transactional boundary (`commit=False`), backed by compensating rollback. If production promotion fails, no orphaned version remains in `staging` or `development`, the previous champion remains in `production`, and the candidate status is accurately recorded as `promotion_failed` with full audit detail. Regression tested with 3 tests in `tests/test_retraining.py` (**94/94 pytest passed**).
 - `api/routers/training.py`, `api/routers/predict.py`: jobs created via the legacy no-auth/API-key path (`SystemPrincipal`) were stored with `owner_id="system"` (the literal string), not `NULL` — inconsistent with every other router, and silently breaking `registry_service.register_version()`'s ownership check for exactly that case. Found by actually running the API during Phase 4's live verification, not by inspection. Fixed with the same `_owner_id()` normalization already used elsewhere; regression test added.
+- `api/schemas.py`: Pydantic V2 protected namespace warnings for `model_*` fields resolved via `MLForgeBaseModel(protected_namespaces=())`.
+- `api/main.py`: migrated deprecated `@app.on_event("startup")` handler to FastAPI lifespan context manager.
+- `requirements.txt` environment: resolved `mlflow-skinny` / `googleapis-common-protos` protobuf dependency conflict; `pip check` green.
 
 ### Not done this pass
 - Scheduled/periodic retraining (explicitly out of scope).

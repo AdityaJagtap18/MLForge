@@ -116,7 +116,7 @@ Base: `feature/phase3-deployment-monitoring` (contains all Phase 1–3 + hardeni
 - Drift-triggered retraining always reuses the original training dataset, not the monitoring window that triggered it.
 - No scheduled/periodic retraining (explicitly out of scope).
 - The frontend's Pipelines page does not show the originating `ModelVersion`'s name/version for a drift-triggered candidate by id lookup (only the monitoring snapshot id) -- a minor UX gap, not a correctness one.
-- Approval's two-step `promote()` call (staging then production) means a quality-gate failure on the *second* call leaves the version sitting in `staging`, not `development` -- `candidate.status` is set to `promotion_failed` in that case so it's visible or in the audit trail, but the orphaned `staging` version is not automatically cleaned up.
+- ~~Approval's two-step `promote()` call leaves orphaned version in `staging` on second-step failure~~ — **Fixed in Phase 4 integration hardening**: `approve_candidate()` encapsulates registration and both promotion transitions (`staging` and `production`) within a single transaction boundary (`commit=False`) backed by compensating rollback, ensuring no orphaned development or staging versions remain in the registry if promotion fails at any step. Regression tested in `tests/test_retraining.py` (94/94 tests passing).
 
 ## Known gaps / deferred within Phase 1
 - `src/model.py`/`train.py`/`test.py`/`metrics.py` are superseded by `ml_core/` but not deleted yet (kept pending the user's own verification, per the transformation prompt's "don't delete legacy code until tested" rule).

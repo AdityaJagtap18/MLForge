@@ -13,8 +13,16 @@
 - ~~Running the real Alembic migration chain against an actual SQLite file~~ — done (`0001→0004`, plus a downgrade/re-upgrade of 0004); see `docs/implementation-status.md`.
 - OpenTelemetry tracing and Grafana dashboards (Phase 3 scope) — not started. Both need an external collector/Grafana server to verify meaningfully; `/metrics` is scrape-ready for Prometheus in the meantime.
 - Batch inference enhancements beyond the existing CSV-based `/predict` (the transformation prompt's Phase 3 scope mentions this distinctly from real-time JSON prediction, which Phase 3 does add).
-- PostgreSQL migration, Redis+RQ async execution, retention/cleanup job, rate limiting — still not started (carried over from Phase 2).
-- Deployment/monitoring/registry-compare frontend UI — Phase 3's new endpoints (`/deployments/*`, `/registry/compare`) have no React pages yet.
+- PostgreSQL migration (Phase 2 carry-over) — connection string and testing exercise; current store remains SQLite.
+- Redis + RQ async execution (Phase 2 carry-over) — asynchronous training and retraining job queueing.
+- Artifact and dataset retention/cleanup job (Phase 2 carry-over) — automated purging of orphaned pickle files and old upload files.
+- Rate limiting and token rotation (Phase 2 carry-over) — brute-force protection on `/auth/login` and refresh-token rotation flow.
+- Deployment UI (Phase 3 carry-over) — React frontend views for `/deployments` lifecycle management.
+- Monitoring UI (Phase 3 carry-over) — React frontend views for `/monitoring` Evidently data-drift reports.
+- Explainability UI (Phase 2 carry-over) — React frontend views for `/explainability` global/local SHAP visualizer.
+- Settings UI (Phase 2 carry-over) — React frontend views for `/settings` account management and token revocation.
+- Frontend bundle-size optimization (Vite code splitting) — `index.js` chunk exceeds 500 kB; introduce dynamic `import()` for lazy route loading and manual chunk configuration.
+- ~~`approve_candidate()` two-step promotion orphaned staging version~~ — **Fixed in integration hardening**: transaction boundaries (`commit=False`) and compensating rollback guarantee no orphaned development or staging versions remain in the registry if production promotion fails.
 - Scheduled retraining (periodic/cron) — explicitly out of scope for Phase 4 per the transformation prompt; only manual and drift-triggered candidate generation exist.
 - Drift-triggered retraining candidates reuse the original training dataset, not the monitoring window that flagged the drift — training "on the new data" is a materially bigger feature than Phase 4 scoped.
 - The Pipelines (retraining) frontend page doesn't show a drift-triggered candidate's source `ModelVersion` name/version, only the monitoring snapshot id — minor UX gap.

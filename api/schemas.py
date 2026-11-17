@@ -5,16 +5,20 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
-class ErrorResponse(BaseModel):
+class MLForgeBaseModel(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+
+class ErrorResponse(MLForgeBaseModel):
     status: str = "error"
     message: str
 
 
-class ModelsResponse(BaseModel):
+class ModelsResponse(MLForgeBaseModel):
     models: list[str]
 
 
-class TrainModelResponse(BaseModel):
+class TrainModelResponse(MLForgeBaseModel):
     status: str = "success"
     job_id: str
     model_name: str
@@ -24,7 +28,7 @@ class TrainModelResponse(BaseModel):
     n_test: int
 
 
-class FindBestModelResponse(BaseModel):
+class FindBestModelResponse(MLForgeBaseModel):
     status: str = "success"
     job_id: str
     task_type: str
@@ -32,14 +36,14 @@ class FindBestModelResponse(BaseModel):
     results: list[dict]
 
 
-class PredictResponse(BaseModel):
+class PredictResponse(MLForgeBaseModel):
     status: str = "success"
     job_id: str
     predictions: list
 
 
-class JobSummary(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class JobSummary(MLForgeBaseModel):
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
     id: str
     job_type: str
@@ -67,34 +71,34 @@ class JobDetail(JobSummary):
     tracking_status: str | None = None
 
 
-class HealthResponse(BaseModel):
+class HealthResponse(MLForgeBaseModel):
     status: str
     database: str
     model_catalog: str
 
 
-class RegisterRequest(BaseModel):
+class RegisterRequest(MLForgeBaseModel):
     email: str
     password: str
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(MLForgeBaseModel):
     email: str
     password: str
 
 
-class TokenResponse(BaseModel):
+class TokenResponse(MLForgeBaseModel):
     access_token: str
     token_type: str = "bearer"
     user_id: str
     email: str
 
 
-class LogoutResponse(BaseModel):
+class LogoutResponse(MLForgeBaseModel):
     revoked: bool
 
 
-class DatasetProfileResponse(BaseModel):
+class DatasetProfileResponse(MLForgeBaseModel):
     n_rows: int
     n_columns: int
     columns: list[dict]
@@ -106,8 +110,8 @@ class DatasetProfileResponse(BaseModel):
     leakage_warnings: list[str]
 
 
-class ModelVersionResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class ModelVersionResponse(MLForgeBaseModel):
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
     id: str
     job_id: str
@@ -120,11 +124,11 @@ class ModelVersionResponse(BaseModel):
     promoted_at: datetime | None = None
 
 
-class PromoteRequest(BaseModel):
+class PromoteRequest(MLForgeBaseModel):
     target_state: str  # staging | production | archived
 
 
-class ExplainResponse(BaseModel):
+class ExplainResponse(MLForgeBaseModel):
     job_id: str
     supported: bool
     message: str | None = None
@@ -132,8 +136,8 @@ class ExplainResponse(BaseModel):
     global_importance: dict | None = None
 
 
-class DeploymentResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class DeploymentResponse(MLForgeBaseModel):
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
     id: str
     model_version_id: str
@@ -151,11 +155,11 @@ class DeploymentMetricsResponse(DeploymentResponse):
     max_latency_ms: float | None = None
 
 
-class PredictJSONRequest(BaseModel):
+class PredictJSONRequest(MLForgeBaseModel):
     features: dict
 
 
-class PredictJSONResponse(BaseModel):
+class PredictJSONResponse(MLForgeBaseModel):
     status: str = "success"
     deployment_id: str
     model_version: int
@@ -163,8 +167,8 @@ class PredictJSONResponse(BaseModel):
     latency_ms: float
 
 
-class MonitoringSnapshotResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class MonitoringSnapshotResponse(MLForgeBaseModel):
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
     id: str
     deployment_id: str
@@ -178,7 +182,7 @@ class MonitoringSnapshotResponse(BaseModel):
     alert: bool = False
 
 
-class ChampionChallengerResponse(BaseModel):
+class ChampionChallengerResponse(MLForgeBaseModel):
     model_name: str
     champion: ModelVersionResponse | None = None
     challenger: ModelVersionResponse
@@ -187,8 +191,8 @@ class ChampionChallengerResponse(BaseModel):
     recommendation: str
 
 
-class RetrainingCandidateResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class RetrainingCandidateResponse(MLForgeBaseModel):
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
     id: str
     model_name: str
@@ -209,9 +213,9 @@ class RetrainingCandidateResponse(BaseModel):
     created_at: datetime
 
 
-class RetrainingDecisionRequest(BaseModel):
+class RetrainingDecisionRequest(MLForgeBaseModel):
     reason: str | None = None
 
 
-class GenerateCandidateRequest(BaseModel):
+class GenerateCandidateRequest(MLForgeBaseModel):
     model_version_id: str  # the registered version whose config to retrain with

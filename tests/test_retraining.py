@@ -413,3 +413,121 @@ def test_audit_chain_for_manual_candidate_has_no_snapshot(client):
     assert audit.status_code == 200
     assert audit.json()["monitoring_snapshot"] is None
     assert audit.json()["source"] == "manual"
+
+
+# ------------------------------------------------ 4D: promotion consistency & rollback
+
+
+def test_failed_production_promotion_leaves_no_orphaned_staging_version(client, monkeypatch):
+    """Regression test: if promotion to production fails after staging promotion
+    succeeds, the transaction boundary and compensating rollback must ensure
+    NO orphaned staging version remains in the registry, and the current champion
+    remains untouched in production."""
+    import api.registry_service as registry_service
+    import api.retraining_service as retraining_service
+
+    monkeypatch.setattr(retraining_service, "_champion_score", lambda champion: -1.0)
+
+    token = _register(client, "fail-prod-stage@example.com")
+    champion_version_id = _champion_version(client, token)
+
+    candidate = client.post(
+        "/api/v1/retraining/trigger", json={"model_version_id": champion_version_id}, headers=_auth(token)
+    ).json()
+    client.post(f"/api/v1/retraining/{candidate['id']}/evaluate", headers=_auth(token))
+
+    # Force failure specifically at promote(production)
+    orig_promote = registry_service.promote
+
+    def mock_promote(db, version, job, target_state, commit=True):
+        if target_state == "production":
+            raise registry_service.RegistryError("Simulated production promotion gate failure")
+        return orig_promote(db, version, job, target_state, commit=commit)
+
+    monkeypatch.setattr(registry_service, "promote", mock_promote)
+
+    resp = client.post(f"/api/v1/retraining/{candidate['id']}/approve", json={"reason": "try promote"}, headers=_auth(token))
+    assert resp.status_code == 400
+    assert "Simulated production promotion gate failure" in resp.json()["detail"]
+
+    # Candidate audit status is promotion_failed
+    cand_resp = client.get(f"/api/v1/retraining/{candidate['id']}", headers=_auth(token)).json()
+    assert cand_resp["status"] == "promotion_failed"
+    assert cand_resp["promoted_version_id"] is None
+    assert "Simulated production promotion gate failure" in cand_resp["decision_reason"]
+
+    # Registry verification: NO staging version exists! Only the original champion exists
+    versions = client.get("/api/v1/registry", headers=_auth(token)).json()
+    assert len(versions) == 1
+    assert versions[0]["id"] == champion_version_id
+    assert versions[0]["lifecycle_state"] == "production"
+
+
+def test_failed_staging_promotion_leaves_no_orphaned_dev_version(client, monkeypatch):
+    """Regression test: if staging promotion fails, no orphaned development version remains."""
+    import api.registry_service as registry_service
+    import api.retraining_service as retraining_service
+
+    monkeypatch.setattr(retraining_service, "_champion_score", lambda champion: -1.0)
+
+    token = _register(client, "fail-staging-dev@example.com")
+    champion_version_id = _champion_version(client, token)
+
+    candidate = client.post(
+        "/api/v1/retraining/trigger", json={"model_version_id": champion_version_id}, headers=_auth(token)
+    ).json()
+    client.post(f"/api/v1/retraining/{candidate['id']}/evaluate", headers=_auth(token))
+
+    def mock_promote(db, version, job, target_state, commit=True):
+        if target_state == "staging":
+            raise registry_service.RegistryError("Simulated staging transition failure")
+        return version
+
+    monkeypatch.setattr(registry_service, "promote", mock_promote)
+
+    resp = client.post(f"/api/v1/retraining/{candidate['id']}/approve", json={"reason": "try promote"}, headers=_auth(token))
+    assert resp.status_code == 400
+    assert "Simulated staging transition failure" in resp.json()["detail"]
+
+    # Registry has no development or staging version from the candidate
+    versions = client.get("/api/v1/registry", headers=_auth(token)).json()
+    assert len(versions) == 1
+    assert versions[0]["id"] == champion_version_id
+    assert versions[0]["lifecycle_state"] == "production"
+
+    cand_resp = client.get(f"/api/v1/retraining/{candidate['id']}", headers=_auth(token)).json()
+    assert cand_resp["status"] == "promotion_failed"
+    assert cand_resp["promoted_version_id"] is None
+
+
+def test_failed_registration_step_records_failure_and_leaves_clean_state(client, monkeypatch):
+    """Regression test: if register_version fails, candidate is marked promotion_failed and champion is untouched."""
+    import api.registry_service as registry_service
+    import api.retraining_service as retraining_service
+
+    monkeypatch.setattr(retraining_service, "_champion_score", lambda champion: -1.0)
+
+    token = _register(client, "fail-reg-step@example.com")
+    champion_version_id = _champion_version(client, token)
+
+    candidate = client.post(
+        "/api/v1/retraining/trigger", json={"model_version_id": champion_version_id}, headers=_auth(token)
+    ).json()
+    client.post(f"/api/v1/retraining/{candidate['id']}/evaluate", headers=_auth(token))
+
+    def mock_register(*args, **kwargs):
+        raise registry_service.RegistryError("Simulated register_version failure")
+
+    monkeypatch.setattr(registry_service, "register_version", mock_register)
+
+    resp = client.post(f"/api/v1/retraining/{candidate['id']}/approve", json={}, headers=_auth(token))
+    assert resp.status_code == 400
+    assert "Simulated register_version failure" in resp.json()["detail"]
+
+    cand_resp = client.get(f"/api/v1/retraining/{candidate['id']}", headers=_auth(token)).json()
+    assert cand_resp["status"] == "promotion_failed"
+
+    versions = client.get("/api/v1/registry", headers=_auth(token)).json()
+    assert len(versions) == 1
+    assert versions[0]["id"] == champion_version_id
+

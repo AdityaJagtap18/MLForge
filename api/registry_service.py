@@ -53,7 +53,13 @@ def _owner_filter(stmt, owner_id: str | None):
     return stmt.where(ModelVersion.owner_id.is_(None)) if owner_id is None else stmt.where(ModelVersion.owner_id == owner_id)
 
 
-def register_version(db: Session, job: Job, owner_id: str | None, model_card_extra: dict | None = None) -> ModelVersion:
+def register_version(
+    db: Session,
+    job: Job,
+    owner_id: str | None,
+    model_card_extra: dict | None = None,
+    commit: bool = True,
+) -> ModelVersion:
     if job.status != "succeeded" or not job.pickle_path:
         raise RegistryError("Only a successfully completed training/find-best job can be registered.")
     if job.owner_id != owner_id:
@@ -87,8 +93,11 @@ def register_version(db: Session, job: Job, owner_id: str | None, model_card_ext
         model_card=model_card,
     )
     db.add(version)
-    db.commit()
-    db.refresh(version)
+    if commit:
+        db.commit()
+        db.refresh(version)
+    else:
+        db.flush()
     return version
 
 
@@ -107,7 +116,13 @@ def get_current_production(db: Session, owner_id: str | None, model_name: str) -
     return db.execute(stmt).scalars().first()
 
 
-def promote(db: Session, version: ModelVersion, job: Job, target_state: str) -> ModelVersion:
+def promote(
+    db: Session,
+    version: ModelVersion,
+    job: Job,
+    target_state: str,
+    commit: bool = True,
+) -> ModelVersion:
     if target_state not in LIFECYCLE_STATES:
         raise RegistryError(f"target_state must be one of {LIFECYCLE_STATES}")
     if target_state not in _ALLOWED_TRANSITIONS.get(version.lifecycle_state, set()):
@@ -136,11 +151,15 @@ def promote(db: Session, version: ModelVersion, job: Job, target_state: str) -> 
 
         version.lifecycle_state = target_state
         version.promoted_at = datetime.now(timezone.utc)
-        db.commit()
+        if commit:
+            db.commit()
+            db.refresh(version)
+        else:
+            db.flush()
     except Exception:
-        db.rollback()
+        if commit:
+            db.rollback()
         raise
-    db.refresh(version)
     return version
 
 

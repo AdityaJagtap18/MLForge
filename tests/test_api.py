@@ -63,8 +63,7 @@ def test_train_model_success_and_no_stack_trace_on_bad_column(client):
     detail = bad_resp.json()["detail"]
     assert "Traceback" not in detail
     assert "not_a_real_column" in detail
-
-    return job_id
+    assert job_id is not None
 
 
 def test_predict_uses_trained_job(client):

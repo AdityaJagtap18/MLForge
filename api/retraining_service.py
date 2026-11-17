@@ -197,10 +197,16 @@ def approve_candidate(db: Session, candidate: RetrainingCandidate, decided_by: s
     if job is None:
         raise RetrainingError("The candidate's training job no longer exists.")
 
+    version = None
     try:
-        version = registry_service.register_version(db, job, candidate.owner_id, model_card_extra={"retraining_candidate_id": candidate.id})
-        version = registry_service.promote(db, version, job, "staging")
-        version = registry_service.promote(db, version, job, "production")
+        # Register and promote in a single transactional boundary (commit=False)
+        # so that any failure before final production promotion leaves no
+        # orphaned development or staging version in the registry.
+        version = registry_service.register_version(
+            db, job, candidate.owner_id, model_card_extra={"retraining_candidate_id": candidate.id}, commit=False
+        )
+        version = registry_service.promote(db, version, job, "staging", commit=False)
+        version = registry_service.promote(db, version, job, "production", commit=False)
 
         candidate.decision = "approved"
         candidate.decision_reason = reason
@@ -209,14 +215,32 @@ def approve_candidate(db: Session, candidate: RetrainingCandidate, decided_by: s
         candidate.status = "approved"
         candidate.promoted_version_id = version.id
         db.commit()
+        db.refresh(version)
     except registry_service.RegistryError as exc:
         db.rollback()
-        candidate.status = "promotion_failed"
-        candidate.decision_reason = f"Approved but promotion failed: {exc}"
-        db.commit()
+        # Compensating rollback: if the version record was flushed or created,
+        # ensure it is completely purged from the registry to avoid orphans.
+        if version is not None and getattr(version, "id", None):
+            orphan = db.get(ModelVersion, version.id)
+            if orphan is not None:
+                db.delete(orphan)
+                db.commit()
+
+        cand = db.get(RetrainingCandidate, candidate.id)
+        if cand is not None:
+            cand.status = "promotion_failed"
+            cand.decision_reason = f"Approved but promotion failed: {exc}"
+            db.commit()
+            db.refresh(cand)
+            candidate = cand
         raise RetrainingError(str(exc)) from exc
     except Exception:
         db.rollback()
+        if version is not None and getattr(version, "id", None):
+            orphan = db.get(ModelVersion, version.id)
+            if orphan is not None:
+                db.delete(orphan)
+                db.commit()
         raise
     db.refresh(candidate)
     return candidate

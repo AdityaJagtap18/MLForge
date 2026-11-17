@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import logging
 import os
 
@@ -13,21 +14,9 @@ from api.routers import auth, catalog_router, datasets, deployments, explain, he
 
 logger = logging.getLogger("mlforge")
 
-app = FastAPI(title="MLForge API", version="0.4.0")
 
-_allowed_origins = [o for o in os.environ.get("MLFORGE_CORS_ORIGINS", "").split(",") if o]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_allowed_origins or ["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-app.add_middleware(prometheus_metrics.PrometheusMiddleware)
-
-
-@app.on_event("startup")
-def _startup() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     init_db()
     logger.info("MLFORGE_ENV=%s (IS_PRODUCTION=%s)", ENVIRONMENT, IS_PRODUCTION)
     if IS_PRODUCTION:
@@ -46,6 +35,20 @@ def _startup() -> None:
             "Set MLFORGE_ENV=production (and MLFORGE_API_KEY, if you need the legacy "
             "service-account path) before deploying beyond local development."
         )
+    yield
+
+
+app = FastAPI(title="MLForge API", version="0.4.0", lifespan=lifespan)
+
+_allowed_origins = [o for o in os.environ.get("MLFORGE_CORS_ORIGINS", "").split(",") if o]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins or ["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+app.add_middleware(prometheus_metrics.PrometheusMiddleware)
 
 
 # Versioned API surface (transformation prompt §API governance).
