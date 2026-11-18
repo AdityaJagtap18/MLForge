@@ -16,6 +16,7 @@ import type {
   HealthResponse,
   JobDetail,
   JobSummary,
+  LoginRequest,
   LogoutResponse,
   ModelsResponse,
   ModelVersion,
@@ -23,9 +24,11 @@ import type {
   OverviewStatsResponse,
   PredictJSONResponse,
   PredictResponse,
+  RegisterRequest,
   RetrainingAudit,
   RetrainingCandidate,
   SettingsResponse,
+  TokenResponse,
   TrainModelResponse,
   UserProfileInfo,
 } from "./types";
@@ -36,7 +39,9 @@ const API_KEY = import.meta.env.VITE_API_KEY as string | undefined;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
-  if (API_KEY) headers.set("X-API-Key", API_KEY);
+  const storedApiKey = localStorage.getItem("mlforge_api_key");
+  const effectiveApiKey = storedApiKey || API_KEY;
+  if (effectiveApiKey && !headers.has("X-API-Key")) headers.set("X-API-Key", effectiveApiKey);
 
   const token = localStorage.getItem("mlforge_token");
   if (token && !headers.has("Authorization")) {
@@ -167,6 +172,40 @@ export const api = {
   getProfile: () => request<UserProfileInfo>("/api/v1/settings/profile"),
 
   getDependencyHealth: () => request<DependencyHealthDetail[]>("/api/v1/settings/health"),
+
+  login: async (credentials: LoginRequest): Promise<TokenResponse> => {
+    const res = await request<TokenResponse>("/api/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+    localStorage.setItem("mlforge_token", res.access_token);
+    localStorage.setItem("mlforge_user", JSON.stringify({ id: res.user_id, email: res.email }));
+    return res;
+  },
+
+  register: async (credentials: RegisterRequest): Promise<TokenResponse> => {
+    const res = await request<TokenResponse>("/api/v1/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+    localStorage.setItem("mlforge_token", res.access_token);
+    localStorage.setItem("mlforge_user", JSON.stringify({ id: res.user_id, email: res.email }));
+    return res;
+  },
+
+  setApiKey: (key: string) => {
+    if (key.trim()) {
+      localStorage.setItem("mlforge_api_key", key.trim());
+    } else {
+      localStorage.removeItem("mlforge_api_key");
+    }
+  },
+
+  getStoredApiKey: (): string => {
+    return localStorage.getItem("mlforge_api_key") || "";
+  },
 
   logout: () => request<LogoutResponse>("/api/v1/auth/logout", { method: "POST" }),
 };

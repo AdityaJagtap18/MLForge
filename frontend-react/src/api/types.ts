@@ -334,6 +334,23 @@ export interface LogoutResponse {
   revoked: boolean;
 }
 
+export interface RegisterRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  user_id: string;
+  email: string;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
