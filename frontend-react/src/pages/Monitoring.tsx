@@ -10,6 +10,7 @@ import {
 } from "../api/types";
 import { Card, CardHeader } from "../components/ui/Card";
 import { Icon } from "../components/ui/Icon";
+import { PageHeader } from "../components/layout/PageHeader";
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -240,41 +241,38 @@ export function Monitoring() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-[28px] font-bold text-ink">Monitoring &amp; Drift Intelligence</h1>
-          <p className="text-sm text-muted">
-            Evidently-powered data drift evaluation, inference window tracking, and automated retraining pipelines.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => loadData()}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-bg transition-colors shadow-xs disabled:opacity-50"
-            title="Refresh monitoring data"
-          >
-            <Icon name="clock" className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-muted"}`} />
-            Refresh
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setRunDeployId(deployments.find((d) => d.status === "active")?.id || deployments[0]?.id || "");
-              setWindowFile(null);
-              setRunError(null);
-              setLatestRunResult(null);
-              setShowRunModal(true);
-            }}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs transition-opacity hover:opacity-90"
-          >
-            <Icon name="upload" className="h-4 w-4" />
-            Evaluate Drift Window
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Monitoring &amp; Drift Intelligence"
+        subtitle="Evidently-powered data drift evaluation, inference window tracking, and automated retraining pipelines."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => loadData()}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-bg transition-colors shadow-xs disabled:opacity-50"
+              title="Refresh monitoring data"
+            >
+              <Icon name="clock" className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-muted"}`} />
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRunDeployId(deployments.find((d) => d.status === "active")?.id || deployments[0]?.id || "");
+                setWindowFile(null);
+                setRunError(null);
+                setLatestRunResult(null);
+                setShowRunModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs transition-opacity hover:opacity-90"
+            >
+              <Icon name="upload" className="h-4 w-4" />
+              Evaluate Drift Window
+            </button>
+          </>
+        }
+      />
 
       {/* Global Alerts */}
       {successBanner && (

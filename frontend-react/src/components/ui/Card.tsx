@@ -31,15 +31,19 @@ export function CardHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between">
-      <div className="flex items-start gap-2">
-        {icon}
-        <div>
-          <h3 className="text-[15px] font-semibold text-ink">{title}</h3>
-          {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-2.5">
+        {icon && (
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+            {icon}
+          </span>
+        )}
+        <div className="space-y-0.5">
+          <h3 className="text-[15px] font-semibold leading-tight text-ink">{title}</h3>
+          {subtitle && <p className="text-xs text-muted leading-tight">{subtitle}</p>}
         </div>
       </div>
-      {action}
+      {action && <div className="flex items-center gap-2">{action}</div>}
     </div>
   );
 }

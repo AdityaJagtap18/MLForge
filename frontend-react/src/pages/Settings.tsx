@@ -6,6 +6,7 @@ import {
 } from "../api/types";
 import { Card } from "../components/ui/Card";
 import { Icon } from "../components/ui/Icon";
+import { PageHeader } from "../components/layout/PageHeader";
 
 function formatTimestamp(isoStr: string | null | undefined): string {
   if (!isoStr) return "N/A";
@@ -123,31 +124,29 @@ export function Settings() {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-[28px] font-bold text-ink">Settings &amp; Environment</h1>
-            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-              v0.4.0
-            </span>
-          </div>
-          <p className="text-sm text-muted">
-            Authoritative application configuration, runtime environment, system capabilities, and live dependency health diagnostics
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {lastUpdated && <span className="text-xs text-muted">Last verified: {lastUpdated}</span>}
-          <button
-            type="button"
-            onClick={loadSettings}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-bg transition-colors shadow-xs disabled:opacity-50"
-          >
-            <Icon name="clock" className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-muted"}`} />
-            Refresh
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Settings &amp; Environment"
+        subtitle="Authoritative application configuration, runtime environment, system capabilities, and live dependency health diagnostics."
+        badge={
+          <span className="rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
+            v0.4.0
+          </span>
+        }
+        actions={
+          <>
+            {lastUpdated && <span className="text-xs text-muted">Last verified: {lastUpdated}</span>}
+            <button
+              type="button"
+              onClick={loadSettings}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-bg transition-colors shadow-xs disabled:opacity-50"
+            >
+              <Icon name="clock" className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-muted"}`} />
+              Refresh
+            </button>
+          </>
+        }
+      />
 
       {/* Error Banner with Retry */}
       {error && (

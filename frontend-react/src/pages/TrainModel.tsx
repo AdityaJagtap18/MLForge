@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import { ApiError } from "../api/types";
 import { Card, CardHeader } from "../components/ui/Card";
 import { Icon } from "../components/ui/Icon";
+import { PageHeader } from "../components/layout/PageHeader";
 
 export function TrainModel() {
   const navigate = useNavigate();
@@ -52,31 +53,42 @@ export function TrainModel() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-[28px] font-bold text-ink">Train a Model</h1>
+    <div className="space-y-6 max-w-4xl">
+      <PageHeader
+        title="Train Models"
+        subtitle="Configure feature inputs, select an algorithm family, and train an operational ML model."
+      />
       <Card>
-        <CardHeader icon={<Icon name="train-model" className="h-5 w-5 text-primary" />} title="Single-model training" subtitle="Upload a CSV, choose columns and a model" />
+        <CardHeader
+          icon={<Icon name="train-model" className="h-5 w-5 text-primary" />}
+          title="Single Model Training"
+          subtitle="Upload training CSV, map input features, and train a candidate model"
+        />
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink">Dataset (CSV)</label>
+            <label className="mb-1 block text-xs font-semibold text-ink uppercase tracking-wider">
+              Dataset (CSV)
+            </label>
             <input
               type="file"
               accept=".csv"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-xs text-ink file:mr-3 file:rounded file:border-0 file:bg-surface file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-ink hover:file:bg-line/50 cursor-pointer"
               required
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink">Model</label>
+            <label className="mb-1 block text-xs font-semibold text-ink uppercase tracking-wider">
+              Model Algorithm
+            </label>
             <select
               value={modelName}
               onChange={(e) => setModelName(e.target.value)}
-              className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-xs text-ink focus:border-primary focus:outline-none"
               required
             >
               <option value="" disabled>
-                Select a model
+                Select an algorithm
               </option>
               {models.map((m) => (
                 <option key={m} value={m}>
@@ -86,41 +98,60 @@ export function TrainModel() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink">Input columns (comma-separated)</label>
+            <label className="mb-1 block text-xs font-semibold text-ink uppercase tracking-wider">
+              Input columns (comma-separated)
+            </label>
             <input
               value={inputCols}
               onChange={(e) => setInputCols(e.target.value)}
-              placeholder="age,city,income"
-              className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm"
+              placeholder="e.g. age, city, income"
+              className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-xs text-ink placeholder:text-muted focus:border-primary focus:outline-none"
               required
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink">Target column</label>
+            <label className="mb-1 block text-xs font-semibold text-ink uppercase tracking-wider">
+              Target column
+            </label>
             <input
               value={targetCol}
               onChange={(e) => setTargetCol(e.target.value)}
-              placeholder="label"
-              className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm"
+              placeholder="e.g. label"
+              className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-xs text-ink placeholder:text-muted focus:border-primary focus:outline-none"
               required
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
-            {loading ? "Training…" : "Train Model"}
+            {loading ? (
+              <>
+                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Training Model…
+              </>
+            ) : (
+              <>
+                <Icon name="train-model" className="h-4 w-4" />
+                Train Model
+              </>
+            )}
           </button>
         </form>
 
-        {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        {error && (
+          <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+            <Icon name="alert-triangle" className="h-4 w-4 shrink-0 text-red-600" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {result && (
-          <div className="mt-6 space-y-4 rounded-lg border border-line bg-bg p-4">
+          <div className="mt-6 space-y-4 rounded-xl border border-line bg-bg p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-green-700 font-semibold text-sm">
-                <Icon name="check-circle" className="h-5 w-5 text-green-600" />
+              <div className="flex items-center gap-2 text-green-700 font-semibold text-xs">
+                <Icon name="check-circle" className="h-4 w-4 text-green-600" />
                 <span>Training Succeeded</span>
               </div>
               <span className="font-mono text-xs text-muted">Job ID: {String(result.job_id)}</span>
@@ -129,9 +160,9 @@ export function TrainModel() {
             {Boolean(result.metrics) && typeof result.metrics === "object" && (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {Object.entries(result.metrics as Record<string, unknown>).map(([k, v]) => (
-                  <div key={k} className="rounded bg-surface p-2 border border-line/60">
-                    <span className="text-[10px] uppercase text-muted">{k}</span>
-                    <p className="font-bold text-ink text-sm">
+                  <div key={k} className="rounded-lg bg-surface p-2.5 border border-line shadow-2xs">
+                    <span className="text-[10px] font-semibold uppercase text-muted tracking-wider block">{k}</span>
+                    <p className="font-bold text-ink text-sm mt-0.5">
                       {typeof v === "number" ? v.toFixed(4) : String(v)}
                     </p>
                   </div>
@@ -139,28 +170,28 @@ export function TrainModel() {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
               {registeredVersion ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-green-700 font-medium">{registeredVersion}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-green-700 font-semibold">{registeredVersion}</span>
                   <button
                     type="button"
                     onClick={() => navigate("/registry")}
-                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
                   >
                     View in Registry →
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate("/explainability", { state: { jobId: result.job_id } })}
-                    className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-bg transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-bg transition-colors shadow-2xs"
                   >
                     <Icon name="explainability" className="h-4 w-4 text-primary" />
                     Explain (SHAP) →
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     disabled={registering}
@@ -176,7 +207,7 @@ export function TrainModel() {
                         setRegistering(false);
                       }
                     }}
-                    className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
                   >
                     <Icon name="model-registry" className="h-4 w-4" />
                     {registering ? "Registering..." : "Register in Model Registry"}
@@ -184,7 +215,7 @@ export function TrainModel() {
                   <button
                     type="button"
                     onClick={() => navigate("/explainability", { state: { jobId: result.job_id } })}
-                    className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-bg transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-bg transition-colors shadow-2xs"
                   >
                     <Icon name="explainability" className="h-4 w-4 text-primary" />
                     Explain (SHAP) →
@@ -193,8 +224,8 @@ export function TrainModel() {
               )}
 
               <details className="text-xs text-muted">
-                <summary className="cursor-pointer hover:text-ink">View Raw JSON</summary>
-                <pre className="mt-2 max-h-48 overflow-x-auto rounded bg-surface p-2 text-[11px] text-ink border border-line">
+                <summary className="cursor-pointer hover:text-ink font-medium">View Raw JSON</summary>
+                <pre className="mt-2 max-h-48 overflow-x-auto rounded-lg bg-surface p-2.5 text-[11px] text-ink border border-line font-mono">
                   {JSON.stringify(result, null, 2)}
                 </pre>
               </details>

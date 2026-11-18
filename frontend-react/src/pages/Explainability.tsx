@@ -11,6 +11,7 @@ import {
 import { EChart } from "../components/charts/EChart";
 import { Card, CardHeader } from "../components/ui/Card";
 import { Icon } from "../components/ui/Icon";
+import { PageHeader } from "../components/layout/PageHeader";
 
 interface ModelOption {
   key: string;
@@ -389,42 +390,32 @@ export function Explainability() {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Icon name="explainability" className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-ink">Model Explainability</h1>
-              <p className="text-sm text-muted">
-                Global SHAP feature contribution analysis, importance rankings, and algorithm interpretability
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate("/registry")}
-            className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-bg transition-colors shadow-xs"
-          >
-            <Icon name="model-registry" className="h-4 w-4 text-muted" />
-            Model Registry &rarr;
-          </button>
-          <button
-            type="button"
-            onClick={handleRefreshExplanation}
-            disabled={loadingExplain || !selectedModel}
-            className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-bg transition-colors shadow-xs disabled:opacity-50"
-            title="Re-compute or refresh SHAP explanation for the selected model"
-          >
-            <Icon name="clock" className={`h-4 w-4 ${loadingExplain ? "animate-spin text-primary" : "text-muted"}`} />
-            Refresh
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Model Explainability"
+        subtitle="Global SHAP feature contribution analysis, importance rankings, and algorithm interpretability."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => navigate("/registry")}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-bg transition-colors shadow-xs"
+            >
+              <Icon name="model-registry" className="h-4 w-4 text-muted" />
+              Model Registry &rarr;
+            </button>
+            <button
+              type="button"
+              onClick={handleRefreshExplanation}
+              disabled={loadingExplain || !selectedModel}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-bg transition-colors shadow-xs disabled:opacity-50"
+              title="Re-compute or refresh SHAP explanation for the selected model"
+            >
+              <Icon name="clock" className={`h-4 w-4 ${loadingExplain ? "animate-spin text-primary" : "text-muted"}`} />
+              Refresh
+            </button>
+          </>
+        }
+      />
 
       {/* Global Error Banner */}
       {initialError && (
@@ -442,37 +433,40 @@ export function Explainability() {
       {/* SECTION 1: Explainability Overview KPIs */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-5">
         {/* Total Eligible Models */}
-        <div className="rounded-card border border-line bg-surface p-4 shadow-xs">
+        <Card className="flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted">Eligible Models</span>
+            <span className="text-xs font-medium text-muted uppercase">Eligible Models</span>
             <Icon name="database" className="h-4 w-4 text-muted" />
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
             <span className="text-2xl font-bold text-ink">{overviewKpis.totalEligible}</span>
             <span className="text-xs text-muted">available</span>
           </div>
-          <p className="mt-1 text-[11px] text-muted">Trained models with artifacts</p>
-        </div>
+          <span className="mt-1 text-[11px] text-muted">Trained models with artifacts</span>
+        </Card>
 
         {/* Verified Supported */}
-        <div className="rounded-card border border-line bg-surface p-4 shadow-xs">
+        <Card className="flex flex-col justify-between border-green-200/80 bg-green-50/20">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted">SHAP Supported</span>
-            <div className="rounded bg-green-50 p-1 text-green-700">
+            <span className="text-xs font-medium text-green-800 uppercase flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-green-600" />
+              SHAP Supported
+            </span>
+            <div className="rounded bg-green-100 p-1 text-green-700">
               <Icon name="check-circle" className="h-3.5 w-3.5" />
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold text-green-700">{overviewKpis.supportedCount}</span>
-            <span className="text-xs text-muted">computed</span>
+            <span className="text-2xl font-bold text-green-900">{overviewKpis.supportedCount}</span>
+            <span className="text-xs text-green-700">computed</span>
           </div>
-          <p className="mt-1 text-[11px] text-muted">Tree/Linear models verified</p>
-        </div>
+          <span className="mt-1 text-[11px] text-green-700">Tree/Linear models verified</span>
+        </Card>
 
         {/* Unsupported Algorithms */}
-        <div className="rounded-card border border-line bg-surface p-4 shadow-xs">
+        <Card className="flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted">Unsupported Models</span>
+            <span className="text-xs font-medium text-muted uppercase">Unsupported Models</span>
             <div className="rounded bg-amber/15 p-1 text-amber">
               <Icon name="alert-triangle" className="h-3.5 w-3.5" />
             </div>
@@ -481,33 +475,33 @@ export function Explainability() {
             <span className="text-2xl font-bold text-amber">{overviewKpis.unsupportedCount}</span>
             <span className="text-xs text-muted">flagged</span>
           </div>
-          <p className="mt-1 text-[11px] text-muted">e.g. Distance-based (KNN)</p>
-        </div>
+          <span className="mt-1 text-[11px] text-muted">e.g. Distance-based (KNN)</span>
+        </Card>
 
         {/* Missing Dataset / Data Needed */}
-        <div className="rounded-card border border-line bg-surface p-4 shadow-xs">
+        <Card className="flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted">Data Unavailable</span>
+            <span className="text-xs font-medium text-muted uppercase">Data Unavailable</span>
             <Icon name="filter" className="h-4 w-4 text-muted" />
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
             <span className="text-2xl font-bold text-ink">{overviewKpis.missingDataCount}</span>
             <span className="text-xs text-muted">models</span>
           </div>
-          <p className="mt-1 text-[11px] text-muted">Requires original dataset</p>
-        </div>
+          <span className="mt-1 text-[11px] text-muted">Requires original dataset</span>
+        </Card>
 
         {/* Method & Scope */}
-        <div className="col-span-2 sm:col-span-4 lg:col-span-1 rounded-card border border-line bg-surface p-4 shadow-xs">
+        <Card className="col-span-2 sm:col-span-4 lg:col-span-1 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted">Method &amp; Scope</span>
-            <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-semibold text-muted">
+            <span className="text-xs font-medium text-muted uppercase">Method &amp; Scope</span>
+            <span className="rounded border border-line bg-bg px-1.5 py-0.5 text-[10px] font-semibold text-muted">
               ADR-0004
             </span>
           </div>
           <div className="mt-2 text-sm font-bold text-ink">Global SHAP</div>
-          <p className="mt-1 text-[11px] text-muted">100-sample mean(|SHAP|)</p>
-        </div>
+          <span className="mt-1 text-[11px] text-muted">100-sample mean(|SHAP|)</span>
+        </Card>
       </div>
 
       {/* SECTION 2: Model Selector & Context Banner */}

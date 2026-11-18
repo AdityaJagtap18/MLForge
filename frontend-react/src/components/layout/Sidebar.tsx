@@ -2,16 +2,10 @@ import { NavLink } from "react-router-dom";
 import logo from "../../assets/mlforge-logo.svg";
 import { Icon, type IconName } from "../ui/Icon";
 
-// The supplied SVG pack has no dedicated "Overview" icon (see
-// docs/ui/visual-spec.md §6) -- this is the one documented Lucide-style
-// fallback, drawn at the same 24x24/1.5px outline weight as the rest of the
-// pack rather than freehand-approximated.
-const HOME_FALLBACK = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>`;
-
 interface NavItem {
   to: string;
   label: string;
-  icon: IconName | "home";
+  icon: IconName;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -45,17 +39,15 @@ export function Sidebar() {
             end={item.to === "/"}
             className={({ isActive }) =>
               [
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
                 isActive ? "bg-primary text-white" : "text-ink hover:bg-bg",
               ].join(" ")
             }
           >
-            {item.icon === "home" ? (
-              <span className="h-5 w-5" dangerouslySetInnerHTML={{ __html: HOME_FALLBACK }} />
-            ) : (
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
               <Icon name={item.icon} className="h-5 w-5" />
-            )}
-            {item.label}
+            </span>
+            <span className="truncate">{item.label}</span>
           </NavLink>
         ))}
       </nav>

@@ -113,7 +113,7 @@ export function Header() {
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-700 hover:bg-red-50"
                   >
                     Sign Out
                   </button>
@@ -123,7 +123,7 @@ export function Header() {
           ) : (
             <button
               onClick={() => setShowAuthModal(true)}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow hover:bg-primary-hover transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow hover:opacity-90 transition-opacity"
             >
               Sign In / Register
             </button>

@@ -9,6 +9,7 @@ import {
 } from "../api/types";
 import { Card, CardHeader } from "../components/ui/Card";
 import { Icon } from "../components/ui/Icon";
+import { PageHeader } from "../components/layout/PageHeader";
 
 function isContinuous(
   dist: Record<string, number> | ContinuousDistribution | null
@@ -153,38 +154,34 @@ export function Datasets() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-[28px] font-bold text-ink">Dataset Management</h1>
-          <p className="text-sm text-muted">
-            Inspect data quality, missingness, class imbalance, and detect potential leakage before model training.
-          </p>
-        </div>
-
-        {/* Tab switch */}
-        <div className="flex rounded-lg border border-line bg-surface p-1 shadow-sm">
-          <button
-            type="button"
-            onClick={() => setActiveTab("profile")}
-            className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
-              activeTab === "profile" ? "bg-primary text-white" : "text-muted hover:text-ink"
-            }`}
-          >
-            <Icon name="datasets" className="h-4 w-4" />
-            Profiler
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("history")}
-            className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
-              activeTab === "history" ? "bg-primary text-white" : "text-muted hover:text-ink"
-            }`}
-          >
-            <Icon name="clock" className="h-4 w-4" />
-            Workspace Datasets ({uniqueDatasets.length})
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Dataset Management"
+        subtitle="Inspect data quality, missingness, class imbalance, and detect potential leakage before model training."
+        actions={
+          <div className="flex rounded-lg border border-line bg-surface p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setActiveTab("profile")}
+              className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
+                activeTab === "profile" ? "bg-primary text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              <Icon name="datasets" className="h-4 w-4" />
+              Profiler
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("history")}
+              className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
+                activeTab === "history" ? "bg-primary text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              <Icon name="clock" className="h-4 w-4" />
+              Workspace Datasets ({uniqueDatasets.length})
+            </button>
+          </div>
+        }
+      />
 
       {error && (
         <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">

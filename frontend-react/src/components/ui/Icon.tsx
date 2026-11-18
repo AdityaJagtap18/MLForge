@@ -29,6 +29,8 @@ import settings from "../../assets/icons/settings.svg?raw";
 import trainModel from "../../assets/icons/train-model.svg?raw";
 import upload from "../../assets/icons/upload.svg?raw";
 
+const homeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Overview"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>`;
+
 const ICONS = {
   "alert-triangle": alertTriangle,
   "arrow-right": arrowRight,
@@ -45,6 +47,7 @@ const ICONS = {
   experiments,
   explainability,
   filter,
+  home: homeSvg,
   logs,
   menu,
   "model-registry": modelRegistry,
@@ -60,5 +63,10 @@ const ICONS = {
 export type IconName = keyof typeof ICONS;
 
 export function Icon({ name, className = "" }: { name: IconName; className?: string }) {
-  return <span className={className} dangerouslySetInnerHTML={{ __html: ICONS[name] }} />;
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center [&>svg]:block [&>svg]:h-full [&>svg]:w-full [&>svg]:stroke-[1.8] ${className}`}
+      dangerouslySetInnerHTML={{ __html: ICONS[name] }}
+    />
+  );
 }

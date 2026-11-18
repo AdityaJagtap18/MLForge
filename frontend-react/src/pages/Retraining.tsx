@@ -3,13 +3,14 @@ import { api } from "../api/client";
 import { ApiError, type ModelVersion, type RetrainingAudit, type RetrainingCandidate } from "../api/types";
 import { Card, CardHeader } from "../components/ui/Card";
 import { Icon } from "../components/ui/Icon";
+import { PageHeader } from "../components/layout/PageHeader";
 
 const STATUS_STYLES: Record<string, string> = {
-  approved: "bg-primary/10 text-primary",
-  rejected: "bg-red-50 text-red-700",
-  promotion_failed: "bg-red-50 text-red-700",
-  evaluated: "bg-amber/10 text-amber",
-  pending: "bg-line text-muted",
+  approved: "bg-green-50 text-green-700 border border-green-200",
+  rejected: "bg-red-50 text-red-700 border border-red-200",
+  promotion_failed: "bg-red-50 text-red-700 border border-red-200",
+  evaluated: "bg-amber/10 text-amber border border-amber/20",
+  pending: "bg-line text-muted border border-line",
 };
 
 export function Retraining() {
@@ -90,75 +91,111 @@ export function Retraining() {
   }
 
   return (
-    <div>
-      <h1 className="mb-1 text-[28px] font-bold text-ink">Pipelines</h1>
-      <p className="mb-6 text-sm text-muted">Controlled retraining: manual or drift-triggered candidates, evaluated against the current champion, promoted only by explicit human approval.</p>
+    <div className="space-y-6">
+      <PageHeader
+        title="Retraining Pipelines"
+        subtitle="Controlled retraining: manual or drift-triggered candidates, evaluated against the current champion, promoted only by explicit human approval."
+      />
 
-      <div className="mb-6 grid grid-cols-5 gap-4">
-        <Card className="col-span-2">
-          <CardHeader icon={<Icon name="pipelines" className="h-5 w-5 text-primary" />} title="Trigger manual retraining" subtitle="Reuses the selected model's original dataset and config" />
-          <form onSubmit={handleTrigger} className="space-y-3">
-            <select
-              value={selectedVersionId}
-              onChange={(e) => setSelectedVersionId(e.target.value)}
-              className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm"
-              required
-            >
-              <option value="" disabled>
-                Select a registered model version
-              </option>
-              {versions.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.model_name} v{v.version} ({v.lifecycle_state})
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader
+            icon={<Icon name="pipelines" className="h-5 w-5 text-primary" />}
+            title="Trigger Manual Retraining"
+            subtitle="Reuses the selected model's original dataset and config"
+          />
+          <form onSubmit={handleTrigger} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-ink uppercase tracking-wider">
+                Select Model Version
+              </label>
+              <select
+                value={selectedVersionId}
+                onChange={(e) => setSelectedVersionId(e.target.value)}
+                className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-xs text-ink focus:border-primary focus:outline-none"
+                required
+              >
+                <option value="" disabled>
+                  Select a registered model version
                 </option>
-              ))}
-            </select>
+                {versions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.model_name} v{v.version} ({v.lifecycle_state})
+                  </option>
+                ))}
+              </select>
+            </div>
             <button
               type="submit"
               disabled={busy || !selectedVersionId}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
-              {busy ? "Working…" : "Trigger Retraining"}
+              {busy ? (
+                <>
+                  <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Triggering…
+                </>
+              ) : (
+                <>
+                  <Icon name="pipelines" className="h-4 w-4" />
+                  Trigger Retraining
+                </>
+              )}
             </button>
           </form>
-          {error && <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+          {error && (
+            <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+              <Icon name="alert-triangle" className="h-4 w-4 shrink-0 text-red-600" />
+              <span>{error}</span>
+            </div>
+          )}
         </Card>
 
-        <Card className="col-span-3">
-          <CardHeader icon={<Icon name="experiments" className="h-5 w-5 text-primary" />} title="Retraining candidates" subtitle="Click a row to inspect evaluation, decision and audit trail" />
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line text-left text-xs text-muted">
-                <th className="py-2 font-medium">Candidate</th>
-                <th className="font-medium">Source</th>
-                <th className="font-medium">Status</th>
-                <th className="font-medium">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {candidates.map((c) => (
-                <tr
-                  key={c.id}
-                  onClick={() => openCandidate(c)}
-                  className="cursor-pointer border-b border-line last:border-0 hover:bg-bg"
-                >
-                  <td className="py-2 font-mono text-xs text-primary">{c.id.slice(0, 8)}</td>
-                  <td>{c.source}</td>
-                  <td>
-                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[c.status] ?? ""}`}>{c.status}</span>
-                  </td>
-                  <td className="text-muted">{new Date(c.created_at).toLocaleString()}</td>
+        <Card className="lg:col-span-3">
+          <CardHeader
+            icon={<Icon name="experiments" className="h-5 w-5 text-primary" />}
+            title="Retraining Candidates"
+            subtitle="Click a row to inspect evaluation, decision and audit trail"
+          />
+          <div className="overflow-x-auto rounded-lg border border-line">
+            <table className="w-full text-left text-xs text-ink">
+              <thead>
+                <tr className="border-b border-line bg-bg/50 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                  <th className="py-2.5 px-3">Candidate</th>
+                  <th className="py-2.5 px-3">Source</th>
+                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3">Created</th>
                 </tr>
-              ))}
-              {candidates.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="py-6 text-center text-muted">
-                    No retraining candidates yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {candidates.map((c) => (
+                  <tr
+                    key={c.id}
+                    onClick={() => openCandidate(c)}
+                    className="cursor-pointer hover:bg-bg/50 transition-colors"
+                  >
+                    <td className="py-2.5 px-3 font-mono text-xs text-primary font-semibold">
+                      {c.id.slice(0, 8)}
+                    </td>
+                    <td className="py-2.5 px-3 text-muted">{c.source}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ${STATUS_STYLES[c.status] ?? ""}`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-muted">{new Date(c.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+                {candidates.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-muted text-xs">
+                      No retraining candidates found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
 
@@ -169,52 +206,93 @@ export function Retraining() {
             title={`Candidate ${selected.id.slice(0, 8)}`}
             subtitle={selected.reason ?? undefined}
           />
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <p className="mb-2 text-sm font-medium text-ink">Evaluation</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-line pt-4">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink">Evaluation</p>
               {audit?.evaluation ? (
-                <ul className="space-y-1 text-sm text-muted">
-                  <li>Candidate score: {String(audit.evaluation.candidate_score)}</li>
-                  <li>Champion score: {String(audit.evaluation.champion_score)}</li>
-                  <li>Gate threshold: {audit.evaluation.gate_threshold}</li>
-                  <li className={audit.evaluation.passed ? "text-primary" : "text-red-700"}>
-                    {audit.evaluation.passed ? "Passed" : "Failed"}: {audit.evaluation.reason}
+                <ul className="space-y-1.5 text-xs text-muted rounded-lg bg-bg p-3 border border-line">
+                  <li className="flex justify-between">
+                    <span>Candidate score:</span>
+                    <strong className="text-ink font-mono">{String(audit.evaluation.candidate_score)}</strong>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Champion score:</span>
+                    <strong className="text-ink font-mono">{String(audit.evaluation.champion_score)}</strong>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Gate threshold:</span>
+                    <strong className="text-ink font-mono">{audit.evaluation.gate_threshold}</strong>
+                  </li>
+                  <li className={`flex justify-between pt-1 border-t border-line/60 font-semibold ${audit.evaluation.passed ? "text-green-700" : "text-red-700"}`}>
+                    <span>Result:</span>
+                    <span>{audit.evaluation.passed ? "Passed" : "Failed"}: {audit.evaluation.reason}</span>
                   </li>
                 </ul>
               ) : (
-                <p className="text-sm text-muted">Not evaluated yet.</p>
+                <p className="text-xs text-muted rounded-lg bg-bg p-3 border border-line">Not evaluated yet.</p>
               )}
             </div>
-            <div>
-              <p className="mb-2 text-sm font-medium text-ink">Decision</p>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink">Decision &amp; Promotion</p>
               {audit?.decision?.decision ? (
-                <ul className="space-y-1 text-sm text-muted">
-                  <li>Decision: {audit.decision.decision}</li>
-                  <li>Reason: {audit.decision.reason ?? "—"}</li>
-                  <li>Decided at: {audit.decision.decided_at ? new Date(audit.decision.decided_at).toLocaleString() : "—"}</li>
-                  {audit.promoted_version && <li>Promoted to: v{audit.promoted_version.version} ({audit.promoted_version.lifecycle_state})</li>}
+                <ul className="space-y-1.5 text-xs text-muted rounded-lg bg-bg p-3 border border-line">
+                  <li className="flex justify-between">
+                    <span>Decision:</span>
+                    <strong className="text-ink uppercase">{audit.decision.decision}</strong>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Reason:</span>
+                    <span className="text-ink">{audit.decision.reason ?? "—"}</span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Decided at:</span>
+                    <span className="text-ink">{audit.decision.decided_at ? new Date(audit.decision.decided_at).toLocaleString() : "—"}</span>
+                  </li>
+                  {audit.promoted_version && (
+                    <li className="flex justify-between pt-1 border-t border-line/60 text-green-700 font-semibold">
+                      <span>Promoted to:</span>
+                      <span>v{audit.promoted_version.version} ({audit.promoted_version.lifecycle_state})</span>
+                    </li>
+                  )}
                 </ul>
               ) : (
-                <p className="text-sm text-muted">No decision yet.</p>
+                <p className="text-xs text-muted rounded-lg bg-bg p-3 border border-line">No decision recorded yet.</p>
               )}
               {audit?.monitoring_snapshot && (
-                <p className="mt-2 text-xs text-muted">Drift-triggered by monitoring snapshot {audit.monitoring_snapshot.id.slice(0, 8)} (drift_share={String(audit.monitoring_snapshot.drift_share)}).</p>
+                <p className="text-[11px] text-muted">
+                  Drift-triggered by snapshot <code className="font-mono text-ink">{audit.monitoring_snapshot.id.slice(0, 8)}</code> (drift_share={String(audit.monitoring_snapshot.drift_share)}).
+                </p>
               )}
             </div>
           </div>
 
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
             {selected.status === "pending" && (
-              <button onClick={() => handleEvaluate(selected.id)} disabled={busy} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-                Evaluate
+              <button
+                type="button"
+                onClick={() => handleEvaluate(selected.id)}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                Evaluate Candidate
               </button>
             )}
             {selected.status === "evaluated" && !selected.decision && (
               <>
-                <button onClick={() => handleDecision(selected.id, "approve")} disabled={busy} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                <button
+                  type="button"
+                  onClick={() => handleDecision(selected.id, "approve")}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:opacity-90 disabled:opacity-50 transition-opacity"
+                >
                   Approve &amp; Promote
                 </button>
-                <button onClick={() => handleDecision(selected.id, "reject")} disabled={busy} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink disabled:opacity-50">
+                <button
+                  type="button"
+                  onClick={() => handleDecision(selected.id, "reject")}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
+                >
                   Reject
                 </button>
               </>

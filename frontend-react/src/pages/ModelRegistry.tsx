@@ -9,6 +9,7 @@ import {
 } from "../api/types";
 import { Card } from "../components/ui/Card";
 import { Icon } from "../components/ui/Icon";
+import { PageHeader } from "../components/layout/PageHeader";
 
 const LIFECYCLE_BADGE_CLASSES: Record<string, string> = {
   production: "bg-green-100 text-green-800 border-green-200",
@@ -224,33 +225,30 @@ export function ModelRegistry() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-[28px] font-bold text-ink">Model Registry</h1>
-          <p className="text-sm text-muted">
-            Authoritative lifecycle state management, version lineage, automated quality gates, and rollback governance.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleOpenRegisterModal}
-            className="flex items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink shadow-sm hover:bg-bg transition-colors"
-          >
-            <Icon name="upload" className="h-4 w-4 text-primary" />
-            Register Training Job
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/train")}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-          >
-            <Icon name="train-model" className="h-4 w-4" />
-            Train New Model
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Model Registry"
+        subtitle="Authoritative lifecycle state management, version lineage, automated quality gates, and rollback governance."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={handleOpenRegisterModal}
+              className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink shadow-sm hover:bg-bg transition-colors"
+            >
+              <Icon name="upload" className="h-4 w-4 text-primary" />
+              Register Training Job
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/train")}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs transition-opacity hover:opacity-90"
+            >
+              <Icon name="train-model" className="h-4 w-4" />
+              Train New Model
+            </button>
+          </>
+        }
+      />
 
       {/* Global Alerts */}
       {actionSuccess && (

@@ -9,6 +9,7 @@ import {
 } from "../api/types";
 import { Card, CardHeader } from "../components/ui/Card";
 import { Icon } from "../components/ui/Icon";
+import { PageHeader } from "../components/layout/PageHeader";
 
 export function Deployments() {
   const navigate = useNavigate();
@@ -292,51 +293,48 @@ export function Deployments() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-[28px] font-bold text-ink">Deployments &amp; Inference</h1>
-          <p className="text-sm text-muted">
-            Manage serving deployment slots, observe real-time latency metrics, and test live JSON inference.
-          </p>
-        </div>
+      <PageHeader
+        title="Deployments &amp; Inference"
+        subtitle="Manage serving deployment slots, observe real-time latency metrics, and test live JSON inference."
+        actions={
+          <>
+            <div className="flex rounded-lg border border-line bg-surface p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setActiveTab("deployments")}
+                className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
+                  activeTab === "deployments" ? "bg-primary text-white" : "text-muted hover:text-ink"
+                }`}
+              >
+                <Icon name="deployment" className="h-4 w-4" />
+                Serving Slots ({kpis.active})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("inference")}
+                className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
+                  activeTab === "inference" ? "bg-primary text-white" : "text-muted hover:text-ink"
+                }`}
+              >
+                <Icon name="predictions" className="h-4 w-4" />
+                Inference Playground
+              </button>
+            </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-lg border border-line bg-surface p-1 shadow-sm">
             <button
               type="button"
-              onClick={() => setActiveTab("deployments")}
-              className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
-                activeTab === "deployments" ? "bg-primary text-white" : "text-muted hover:text-ink"
-              }`}
+              onClick={() => {
+                setDeployingVersionId(deployableVersions[0]?.id ?? null);
+                setShowDeployModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs transition-opacity hover:opacity-90"
             >
-              <Icon name="deployment" className="h-4 w-4" />
-              Serving Slots ({kpis.active})
+              <Icon name="upload" className="h-4 w-4" />
+              Deploy Model
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("inference")}
-              className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
-                activeTab === "inference" ? "bg-primary text-white" : "text-muted hover:text-ink"
-              }`}
-            >
-              <Icon name="predictions" className="h-4 w-4" />
-              Inference Playground
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setDeployingVersionId(deployableVersions[0]?.id ?? null);
-              setShowDeployModal(true);
-            }}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-          >
-            <Icon name="upload" className="h-4 w-4" />
-            Deploy Model
-          </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Global Alerts */}
       {actionSuccess && (
