@@ -525,3 +525,50 @@ body.dark .table-wrapper::-webkit-scrollbar-track {
     transform: rotate(360deg);
   }
 }
+
+/* ===== Mobile Responsiveness ===== */
+@media (max-width: 768px) {
+  .container {
+    padding: 20px 14px;
+  }
+  .card {
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .hero {
+    padding: 32px 18px;
+  }
+  .hero h2 {
+    font-size: 24px;
+  }
+  .nav-container {
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .nav-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+  .nav-links a {
+    margin-left: 0;
+    font-size: 14px;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+}
+

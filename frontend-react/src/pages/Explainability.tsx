@@ -842,7 +842,7 @@ export function Explainability() {
                       Total |SHAP| Sum: {totalImportance.toFixed(4)}
                     </span>
                   </div>
-                  <div className="max-h-[460px] overflow-y-auto rounded-lg border border-line">
+                  <div className="max-h-[460px] overflow-x-auto overflow-y-auto rounded-lg border border-line">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead className="bg-bg text-muted uppercase text-[10px] font-semibold sticky top-0 border-b border-line">
                         <tr>

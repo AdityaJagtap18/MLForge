@@ -582,7 +582,8 @@ export function Monitoring() {
               )}
             </div>
           ) : (
-            <table className="w-full text-left text-xs text-ink border-collapse">
+            <div className="overflow-x-auto rounded-lg border border-line">
+              <table className="w-full text-left text-xs text-ink border-collapse">
               <thead>
                 <tr className="border-b border-line bg-bg/50 text-[11px] font-semibold uppercase tracking-wider text-muted">
                   <th className="py-3 px-4">Snapshot ID</th>
@@ -769,6 +770,7 @@ export function Monitoring() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </Card>

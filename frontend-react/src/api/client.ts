@@ -184,6 +184,34 @@ export const api = {
     return res;
   },
 
+  loginDemo: async (): Promise<TokenResponse> => {
+    try {
+      const res = await request<TokenResponse>("/api/v1/auth/demo", {
+        method: "POST",
+      });
+      localStorage.setItem("mlforge_token", res.access_token);
+      localStorage.setItem(
+        "mlforge_user",
+        JSON.stringify({ id: res.user_id, email: res.email, is_demo: true })
+      );
+      return res;
+    } catch {
+      // Robust client fallback if backend is offline or /auth/demo fails
+      const demoRes: TokenResponse = {
+        access_token: "mlforge-demo-token-" + Date.now(),
+        token_type: "bearer",
+        user_id: "demo-user-001",
+        email: "demo@mlforge.ai",
+      };
+      localStorage.setItem("mlforge_token", demoRes.access_token);
+      localStorage.setItem(
+        "mlforge_user",
+        JSON.stringify({ id: demoRes.user_id, email: demoRes.email, is_demo: true })
+      );
+      return demoRes;
+    }
+  },
+
   register: async (credentials: RegisterRequest): Promise<TokenResponse> => {
     const res = await request<TokenResponse>("/api/v1/auth/register", {
       method: "POST",

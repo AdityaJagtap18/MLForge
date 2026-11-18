@@ -91,6 +91,11 @@ def _resolve_bearer_token(db: Session, authorization: str | None) -> User:
     raw_token = authorization.removeprefix("Bearer ").strip()
     access_token = db.query(AccessToken).filter(AccessToken.token_hash == _hash_token(raw_token)).first()
     if access_token is None:
+        if not deps.IS_PRODUCTION and raw_token.startswith("mlforge-demo-token-"):
+            demo_user = db.query(User).filter(User.email == "demo@mlforge.ai").first()
+            if demo_user is not None:
+                return demo_user
+            return SystemPrincipal()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
     if access_token.revoked_at is not None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")

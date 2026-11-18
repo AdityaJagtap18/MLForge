@@ -42,3 +42,17 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
     token = issue_token(db, user)
     return TokenResponse(access_token=token, user_id=user.id, email=user.email)
+
+
+@router.post("/demo", response_model=TokenResponse)
+def demo_login(db: Session = Depends(get_db)):
+    demo_email = "demo@mlforge.ai"
+    user = db.query(User).filter(User.email == demo_email).first()
+    if user is None:
+        user = User(email=demo_email, password_hash=hash_password("DemoPassword123!"))
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    token = issue_token(db, user)
+    return TokenResponse(access_token=token, user_id=user.id, email=user.email)
+

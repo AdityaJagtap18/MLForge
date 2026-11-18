@@ -133,3 +133,18 @@ def test_registry_promote_succeeds_with_gate_disabled(client, monkeypatch):
     assert promote_resp.status_code == 200
     assert promote_resp.json()["lifecycle_state"] == "production"
     assert "pickle_path" not in promote_resp.json()
+
+
+def test_demo_login(client):
+    resp = client.post("/api/v1/auth/demo")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["email"] == "demo@mlforge.ai"
+    assert data["access_token"]
+    assert data["token_type"] == "bearer"
+
+    # Calling demo login again reuses existing demo account and issues valid token
+    resp2 = client.post("/api/v1/auth/demo")
+    assert resp2.status_code == 200
+    assert resp2.json()["user_id"] == data["user_id"]
+
