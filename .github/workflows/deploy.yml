@@ -63,7 +63,7 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           build-args: |
-            VITE_API_BASE_URL=${{ matrix.service == 'frontend' && 'https://mlforge-api.adityajagtap.com' || '' }}
+            VITE_API_BASE_URL=
           tags: ghcr.io/adityajagtap18/mlforge-${{ matrix.service }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
